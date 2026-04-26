@@ -1,0 +1,147 @@
+:root {
+  --bg: #0d1321;
+  --panel: #1d2d44;
+  --text: #f0ebd8;
+  --accent: #3e5c76;
+  --accent-strong: #748cab;
+  --danger: #9d4a4a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.app {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - 1rem);
+  display: grid;
+  gap: 1rem;
+  grid-template-rows: auto 1fr;
+}
+
+.display-panel,
+.keyboard-panel {
+  background: var(--panel);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.panel-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.text-output {
+  display: block;
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 0.75rem;
+  background: #0b1a2b;
+  border: 3px solid var(--accent);
+  border-radius: 0.75rem;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.preview-char {
+  color: #9ec4ff;
+  animation: cursor-blink 1s steps(1, end) infinite;
+}
+
+@keyframes cursor-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-char {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.key-grid {
+  display: grid;
+  gap: 0.8rem;
+  height: 100%;
+  align-content: stretch;
+}
+
+.key-row {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: stretch;
+  width: 100%;
+}
+
+.key-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  height: clamp(4.8rem, 11vh, 7rem);
+  border: 3px solid var(--accent);
+  border-radius: 0.6rem;
+  background: #0b1a2b;
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+  font-weight: 700;
+  padding: 0 0.5rem;
+}
+
+.key-cell.selected {
+  border-color: #ffffff;
+  background: #1d3f63;
+  outline: 4px solid #ffffff;
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px rgba(158, 196, 255, 0.45);
+}
+
+.key-cell.wide {
+  flex-grow: 1.35;
+}
+
+.key-cell.extra-wide {
+  flex-grow: 2.2;
+}
+
+.key-cell.small-text {
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 0.35rem;
+  }
+
+  .app {
+    gap: 0.7rem;
+  }
+}
