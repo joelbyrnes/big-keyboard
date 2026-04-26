@@ -56,21 +56,30 @@ const qwertyLayout = [
 
 const textOutput = document.getElementById("text-output");
 const keyGrid = document.getElementById("key-grid");
+const clearBtn = document.getElementById("clear-btn");
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+
+function setInputMode(mode) {
+  document.body.dataset.inputMode = mode;
+}
 
 const state = {
-  selectedRow: 1,
-  selectedCol: 0,
-  pendingCharacter: "Q",
+  selectedRow: null,
+  selectedCol: null,
+  pendingCharacter: "",
   text: "",
 };
 
 function selectedKey() {
+  if (state.selectedRow === null || state.selectedCol === null) {
+    return null;
+  }
   return qwertyLayout[state.selectedRow][state.selectedCol];
 }
 
 function syncPreviewToSelection() {
   const key = selectedKey();
-  if (key.type === "char") {
+  if (key && key.type === "char") {
     state.pendingCharacter = key.value;
   }
 }
@@ -88,9 +97,18 @@ function displayCharacterForText() {
 
 function updateUI() {
   const committed = escapeText(state.text);
-  const preview = escapeText(displayCharacterForText());
-  textOutput.innerHTML = `${committed}<span class="preview-char">${preview}</span>`;
-  textOutput.setAttribute("aria-label", `Entered text: ${state.text}${state.pendingCharacter}`);
+  const mode = document.body.dataset.inputMode;
+  const hasText = committed.length > 0;
+
+  if (mode === "touch") {
+    textOutput.innerHTML = hasText ? committed : "&nbsp;";
+    textOutput.setAttribute("aria-label", `Entered text: ${state.text}`);
+  } else {
+    const preview = escapeText(displayCharacterForText());
+    textOutput.innerHTML = `${committed}<span class="preview-char">${preview}</span>`;
+    textOutput.setAttribute("aria-label", `Entered text: ${state.text}${state.pendingCharacter}`);
+  }
+
   // Keep the newest character visible.
   textOutput.scrollLeft = textOutput.scrollWidth;
   renderKeyGrid();
@@ -118,7 +136,7 @@ function renderKeyGrid() {
       if (key.type !== "char") {
         cell.classList.add("action-key");
       }
-      if (rowIndex === state.selectedRow && colIndex === state.selectedCol) {
+      if (state.selectedRow !== null && state.selectedCol !== null && rowIndex === state.selectedRow && colIndex === state.selectedCol) {
         cell.classList.add("selected");
       }
       cell.textContent = key.label;
@@ -130,6 +148,10 @@ function renderKeyGrid() {
 }
 
 function moveVertical(step) {
+  if (state.selectedRow === null || state.selectedCol === null) {
+    state.selectedRow = 1;
+    state.selectedCol = 0;
+  }
   const nextRow = Math.max(0, Math.min(qwertyLayout.length - 1, state.selectedRow + step));
   state.selectedRow = nextRow;
   const maxCol = qwertyLayout[state.selectedRow].length - 1;
@@ -139,6 +161,10 @@ function moveVertical(step) {
 }
 
 function moveHorizontal(step) {
+  if (state.selectedRow === null || state.selectedCol === null) {
+    state.selectedRow = 1;
+    state.selectedCol = 0;
+  }
   const rowLength = qwertyLayout[state.selectedRow].length;
   state.selectedCol = (state.selectedCol + step + rowLength) % rowLength;
   syncPreviewToSelection();
@@ -158,10 +184,29 @@ function deleteLast() {
   updateUI();
 }
 
+function clearAll() {
+  state.text = "";
+  updateUI();
+}
+
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+    await document.documentElement.requestFullscreen();
+  } catch {
+    // Fullscreen can fail depending on platform/user gesture policies.
+  }
+}
+
 function activateKey(key) {
   if (key.type === "char") {
     state.text += key.value;
-    state.pendingCharacter = key.value;
+    if (document.body.dataset.inputMode !== "touch") {
+      state.pendingCharacter = key.value;
+    }
     updateUI();
     return;
   }
@@ -174,7 +219,38 @@ function activateKey(key) {
   }
 }
 
+function bindTouchOrClick(button, action) {
+  if (!button) {
+    return;
+  }
+  button.addEventListener(
+    "pointerup",
+    (event) => {
+      event.preventDefault();
+      action();
+    },
+    { passive: false },
+  );
+
+  // Fallback for environments where pointer events are quirky.
+  button.addEventListener(
+    "touchend",
+    (event) => {
+      event.preventDefault();
+      action();
+    },
+    { passive: false },
+  );
+
+  // Mouse / keyboard activation in desktop browsers.
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    action();
+  });
+}
+
 document.addEventListener("keydown", (event) => {
+  setInputMode("keyboard");
   if (event.key === "ArrowUp") {
     event.preventDefault();
     moveVertical(-1);
@@ -206,6 +282,11 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+bindTouchOrClick(clearBtn, clearAll);
+bindTouchOrClick(fullscreenBtn, () => {
+  void toggleFullscreen();
+});
+
 // Touch / pointer support:
 // - Tap a key to activate it immediately (no Enter required).
 // - Dragging won't activate.
@@ -233,6 +314,7 @@ keyGrid.addEventListener(
     if (event.pointerType && event.pointerType !== "touch") {
       return;
     }
+    setInputMode("touch");
     const rawTarget = event.target;
     const target =
       rawTarget instanceof HTMLElement ? rawTarget.closest(".key-cell") : null;
@@ -345,13 +427,13 @@ function selectCell(cell) {
   }
   state.selectedRow = row;
   state.selectedCol = col;
-  syncPreviewToSelection();
   updateUI();
 }
 
 keyGrid.addEventListener(
   "touchstart",
   (event) => {
+    setInputMode("touch");
     if (!event.changedTouches || event.changedTouches.length === 0) {
       return;
     }
@@ -440,5 +522,14 @@ keyGrid.addEventListener(
   { passive: true },
 );
 
-syncPreviewToSelection();
+// Default mode based on device input characteristics.
+if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+  setInputMode("touch");
+} else {
+  setInputMode("keyboard");
+  state.selectedRow = 1;
+  state.selectedCol = 0;
+  syncPreviewToSelection();
+}
+
 updateUI();
