@@ -91,6 +91,8 @@ function updateUI() {
   const preview = escapeText(displayCharacterForText());
   textOutput.innerHTML = `${committed}<span class="preview-char">${preview}</span>`;
   textOutput.setAttribute("aria-label", `Entered text: ${state.text}${state.pendingCharacter}`);
+  // Keep the newest character visible.
+  textOutput.scrollLeft = textOutput.scrollWidth;
   renderKeyGrid();
 }
 
@@ -105,6 +107,8 @@ function renderKeyGrid() {
       const key = qwertyLayout[rowIndex][colIndex];
       const cell = document.createElement("div");
       cell.className = "key-cell";
+      cell.dataset.row = String(rowIndex);
+      cell.dataset.col = String(colIndex);
       if (key.width) {
         cell.classList.add(key.width);
       }
@@ -154,10 +158,9 @@ function deleteLast() {
   updateUI();
 }
 
-function activateSelectedKey() {
-  const key = selectedKey();
-
+function activateKey(key) {
   if (key.type === "char") {
+    state.text += key.value;
     state.pendingCharacter = key.value;
     updateUI();
     return;
@@ -202,6 +205,240 @@ document.addEventListener("keydown", (event) => {
     deleteLast();
   }
 });
+
+// Touch / pointer support:
+// - Tap a key to activate it immediately (no Enter required).
+// - Dragging won't activate.
+// - Suppress long-press context menus/callouts where possible.
+document.addEventListener("contextmenu", (event) => {
+  if (event.target && keyGrid.contains(event.target)) {
+    event.preventDefault();
+  }
+});
+
+let activePointerId = null;
+let activeCell = null;
+let moved = false;
+let startX = 0;
+let startY = 0;
+const MOVE_THRESHOLD_PX = 20;
+
+function isKeyCell(element) {
+  return element instanceof HTMLElement && element.classList.contains("key-cell");
+}
+
+keyGrid.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (event.pointerType && event.pointerType !== "touch") {
+      return;
+    }
+    const rawTarget = event.target;
+    const target =
+      rawTarget instanceof HTMLElement ? rawTarget.closest(".key-cell") : null;
+    if (!isKeyCell(target)) {
+      return;
+    }
+    activePointerId = event.pointerId;
+    activeCell = target;
+    moved = false;
+    startX = event.clientX;
+    startY = event.clientY;
+
+    // Highlight follows touch.
+    const row = Number(activeCell.dataset.row);
+    const col = Number(activeCell.dataset.col);
+    if (!Number.isNaN(row) && !Number.isNaN(col)) {
+      state.selectedRow = row;
+      state.selectedCol = col;
+      syncPreviewToSelection();
+      updateUI();
+    }
+
+    event.preventDefault();
+  },
+  { passive: false },
+);
+
+keyGrid.addEventListener(
+  "pointermove",
+  (event) => {
+    if (event.pointerType && event.pointerType !== "touch") {
+      return;
+    }
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+    const dx = Math.abs(event.clientX - startX);
+    const dy = Math.abs(event.clientY - startY);
+    if (dx > MOVE_THRESHOLD_PX || dy > MOVE_THRESHOLD_PX) {
+      moved = true;
+    }
+    event.preventDefault();
+  },
+  { passive: false },
+);
+
+keyGrid.addEventListener(
+  "pointerup",
+  (event) => {
+    if (event.pointerType && event.pointerType !== "touch") {
+      return;
+    }
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+
+    if (activeCell && !moved) {
+      const row = Number(activeCell.dataset.row);
+      const col = Number(activeCell.dataset.col);
+      if (!Number.isNaN(row) && !Number.isNaN(col)) {
+        activateKey(qwertyLayout[row][col]);
+      }
+    }
+
+    activePointerId = null;
+    activeCell = null;
+    moved = false;
+    event.preventDefault();
+  },
+  { passive: false },
+);
+
+keyGrid.addEventListener(
+  "pointercancel",
+  () => {
+    activePointerId = null;
+    activeCell = null;
+    moved = false;
+  },
+  { passive: true },
+);
+
+// Touch Events fallback (for browsers/devices without reliable Pointer Events).
+let activeTouchId = null;
+let touchMoved = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartCell = null;
+
+function cellFromPoint(x, y) {
+  const element = document.elementFromPoint(x, y);
+  if (!element) {
+    return null;
+  }
+  const cell = element.closest ? element.closest(".key-cell") : null;
+  if (!(cell instanceof HTMLElement)) {
+    return null;
+  }
+  if (!keyGrid.contains(cell)) {
+    return null;
+  }
+  return cell;
+}
+
+function selectCell(cell) {
+  const row = Number(cell.dataset.row);
+  const col = Number(cell.dataset.col);
+  if (Number.isNaN(row) || Number.isNaN(col)) {
+    return;
+  }
+  state.selectedRow = row;
+  state.selectedCol = col;
+  syncPreviewToSelection();
+  updateUI();
+}
+
+keyGrid.addEventListener(
+  "touchstart",
+  (event) => {
+    if (!event.changedTouches || event.changedTouches.length === 0) {
+      return;
+    }
+    if (activeTouchId !== null) {
+      return;
+    }
+
+    const t = event.changedTouches[0];
+    const cell = cellFromPoint(t.clientX, t.clientY);
+    if (!cell) {
+      return;
+    }
+
+    activeTouchId = t.identifier;
+    touchMoved = false;
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+    touchStartCell = cell;
+    selectCell(cell);
+
+    event.preventDefault();
+  },
+  { passive: false },
+);
+
+keyGrid.addEventListener(
+  "touchmove",
+  (event) => {
+    if (activeTouchId === null || !event.changedTouches) {
+      return;
+    }
+    for (let i = 0; i < event.changedTouches.length; i += 1) {
+      const t = event.changedTouches[i];
+      if (t.identifier !== activeTouchId) {
+        continue;
+      }
+      const dx = Math.abs(t.clientX - touchStartX);
+      const dy = Math.abs(t.clientY - touchStartY);
+      if (dx > MOVE_THRESHOLD_PX || dy > MOVE_THRESHOLD_PX) {
+        touchMoved = true;
+      }
+      event.preventDefault();
+      return;
+    }
+  },
+  { passive: false },
+);
+
+keyGrid.addEventListener(
+  "touchend",
+  (event) => {
+    if (activeTouchId === null || !event.changedTouches) {
+      return;
+    }
+    for (let i = 0; i < event.changedTouches.length; i += 1) {
+      const t = event.changedTouches[i];
+      if (t.identifier !== activeTouchId) {
+        continue;
+      }
+
+      if (touchStartCell && !touchMoved) {
+        const row = Number(touchStartCell.dataset.row);
+        const col = Number(touchStartCell.dataset.col);
+        if (!Number.isNaN(row) && !Number.isNaN(col)) {
+          activateKey(qwertyLayout[row][col]);
+        }
+      }
+
+      activeTouchId = null;
+      touchStartCell = null;
+      touchMoved = false;
+      event.preventDefault();
+      return;
+    }
+  },
+  { passive: false },
+);
+
+keyGrid.addEventListener(
+  "touchcancel",
+  () => {
+    activeTouchId = null;
+    touchStartCell = null;
+    touchMoved = false;
+  },
+  { passive: true },
+);
 
 syncPreviewToSelection();
 updateUI();
