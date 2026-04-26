@@ -303,6 +303,7 @@ let moved = false;
 let startX = 0;
 let startY = 0;
 const MOVE_THRESHOLD_PX = 20;
+let activatedThisGesture = false;
 
 function isKeyCell(element) {
   return element instanceof HTMLElement && element.classList.contains("key-cell");
@@ -324,6 +325,7 @@ keyGrid.addEventListener(
     activePointerId = event.pointerId;
     activeCell = target;
     moved = false;
+    activatedThisGesture = false;
     startX = event.clientX;
     startY = event.clientY;
 
@@ -335,6 +337,10 @@ keyGrid.addEventListener(
       state.selectedCol = col;
       syncPreviewToSelection();
       updateUI();
+
+      // Touch mode: if it becomes selected, commit immediately.
+      activateKey(qwertyLayout[row][col]);
+      activatedThisGesture = true;
     }
 
     event.preventDefault();
@@ -371,7 +377,7 @@ keyGrid.addEventListener(
       return;
     }
 
-    if (activeCell && !moved) {
+    if (activeCell && !moved && !activatedThisGesture) {
       const row = Number(activeCell.dataset.row);
       const col = Number(activeCell.dataset.col);
       if (!Number.isNaN(row) && !Number.isNaN(col)) {
@@ -382,6 +388,7 @@ keyGrid.addEventListener(
     activePointerId = null;
     activeCell = null;
     moved = false;
+    activatedThisGesture = false;
     event.preventDefault();
   },
   { passive: false },
@@ -393,6 +400,7 @@ keyGrid.addEventListener(
     activePointerId = null;
     activeCell = null;
     moved = false;
+    activatedThisGesture = false;
   },
   { passive: true },
 );
@@ -403,6 +411,7 @@ let touchMoved = false;
 let touchStartX = 0;
 let touchStartY = 0;
 let touchStartCell = null;
+let touchActivatedThisGesture = false;
 
 function cellFromPoint(x, y) {
   const element = document.elementFromPoint(x, y);
@@ -449,10 +458,19 @@ keyGrid.addEventListener(
 
     activeTouchId = t.identifier;
     touchMoved = false;
+    touchActivatedThisGesture = false;
     touchStartX = t.clientX;
     touchStartY = t.clientY;
     touchStartCell = cell;
     selectCell(cell);
+
+    // Touch mode: if it becomes selected, commit immediately.
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    if (!Number.isNaN(row) && !Number.isNaN(col)) {
+      activateKey(qwertyLayout[row][col]);
+      touchActivatedThisGesture = true;
+    }
 
     event.preventDefault();
   },
@@ -494,7 +512,7 @@ keyGrid.addEventListener(
         continue;
       }
 
-      if (touchStartCell && !touchMoved) {
+      if (touchStartCell && !touchMoved && !touchActivatedThisGesture) {
         const row = Number(touchStartCell.dataset.row);
         const col = Number(touchStartCell.dataset.col);
         if (!Number.isNaN(row) && !Number.isNaN(col)) {
@@ -505,6 +523,7 @@ keyGrid.addEventListener(
       activeTouchId = null;
       touchStartCell = null;
       touchMoved = false;
+      touchActivatedThisGesture = false;
       event.preventDefault();
       return;
     }
@@ -518,6 +537,7 @@ keyGrid.addEventListener(
     activeTouchId = null;
     touchStartCell = null;
     touchMoved = false;
+    touchActivatedThisGesture = false;
   },
   { passive: true },
 );
