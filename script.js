@@ -47,6 +47,10 @@ const qwertyLayout = [
   ],
   [
     { label: "Space", value: " ", type: "char", width: "extra-wide", smallText: true },
+    { label: ",", value: ",", type: "char" },
+    { label: ".", value: ".", type: "char" },
+    { label: "?", value: "?", type: "char" },
+    { label: "!", value: "!", type: "char" },
   ],
 ];
 
@@ -106,6 +110,9 @@ function renderKeyGrid() {
       }
       if (key.smallText) {
         cell.classList.add("small-text");
+      }
+      if (key.type !== "char") {
+        cell.classList.add("action-key");
       }
       if (rowIndex === state.selectedRow && colIndex === state.selectedCol) {
         cell.classList.add("selected");
