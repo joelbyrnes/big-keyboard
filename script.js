@@ -67,6 +67,63 @@ const optionsBtn = document.getElementById("options-btn");
 const optionsModal = document.getElementById("options-modal");
 const optionsCloseBtn = document.getElementById("options-close-btn");
 
+const speech = {
+  enabled: true,
+  lastText: "",
+  lastAtMs: 0,
+};
+
+function speakSelection(key) {
+  if (!speech.enabled) {
+    return;
+  }
+  if (!("speechSynthesis" in window)) {
+    return;
+  }
+  if (!key) {
+    return;
+  }
+
+  let text = "";
+  if (key.type === "char") {
+    if (key.value === " ") {
+      text = "space";
+    } else if (/^[A-Z]$/.test(key.value)) {
+      text = key.value.toLowerCase();
+    } else {
+      text = key.value;
+    }
+  } else if (key.type === "backspace") {
+    text = "delete";
+  } else if (key.type === "commit") {
+    text = "enter";
+  } else {
+    text = key.label || "";
+  }
+
+  if (!text) {
+    return;
+  }
+
+  const now = Date.now();
+  if (speech.lastText === text && now - speech.lastAtMs < 250) {
+    return;
+  }
+  speech.lastText = text;
+  speech.lastAtMs = now;
+
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // Ignore speech failures (permissions, device support, etc).
+  }
+}
+
 function setInputMode(mode) {
   document.body.dataset.inputMode = mode;
 }
@@ -86,6 +143,7 @@ function selectByRowCol(row, col) {
   state.selectedCol = col;
   syncPreviewToSelection();
   updateUI();
+  speakSelection(qwertyLayout[row][col]);
 }
 
 function applyModeForEnvironment() {
@@ -225,6 +283,7 @@ function moveVertical(step) {
   state.selectedCol = Math.min(state.selectedCol, maxCol);
   syncPreviewToSelection();
   updateUI();
+  speakSelection(selectedKey());
 }
 
 function moveHorizontal(step) {
@@ -236,6 +295,7 @@ function moveHorizontal(step) {
   state.selectedCol = (state.selectedCol + step + rowLength) % rowLength;
   syncPreviewToSelection();
   updateUI();
+  speakSelection(selectedKey());
 }
 
 function commitPendingCharacter() {
@@ -633,6 +693,7 @@ function selectCell(cell) {
   state.selectedRow = row;
   state.selectedCol = col;
   updateUI();
+  speakSelection(qwertyLayout[row][col]);
 }
 
 keyGrid.addEventListener(
