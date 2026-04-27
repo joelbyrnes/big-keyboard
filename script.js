@@ -124,6 +124,31 @@ function speakSelection(key) {
   }
 }
 
+function speakEnteredText() {
+  if (!speech.enabled) {
+    return;
+  }
+  if (!("speechSynthesis" in window)) {
+    return;
+  }
+
+  const text = state.text.trim();
+  if (!text) {
+    return;
+  }
+
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text.toLowerCase());
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // Ignore speech failures (permissions, device support, etc).
+  }
+}
+
 function setInputMode(mode) {
   document.body.dataset.inputMode = mode;
 }
@@ -427,8 +452,10 @@ document.addEventListener("keydown", (event) => {
       if (key) {
         activateKey(key);
       }
+      speakEnteredText();
     } else {
       commitPendingCharacter();
+      speakEnteredText();
     }
     return;
   }
