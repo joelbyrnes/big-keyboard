@@ -1,0 +1,33 @@
+ideas
+* speak the letter selected on change
+* speak the word so far on enter
+* touchscreen support, ensure hard to get wrong key, and no hover or long press stuff /
+* keyboard support, including custom mapping for arrows 
+* might want bluetooth KB support too but this is probably standard? 
+* mouse/trackpad/trackball mode - how to escape it? special key to release cursor? 
+* how to make it deployable on android for offline - PwA? 
+* add version and post online
+
+
+Now we want to add another mode. So far we have keyboard arrow enter mode, and touchscreen mode. Now, when fullscreened, we enable mouse or trackball navigation mode, where the user moves the cursor it selects a letter but does not show the cursor. Then they can press enter or left click to enter the letter. 
+
+
+
+
+
+
+PWA vs Capacitor web wrapper
+* PWA easy install 
+* Capacitor in app store
+* Cap has access to android APIs 
+
+
+For embedding in Android:
+Capacitor + (plain JS or React/Vue/Svelte) is a common, solid combination.
+
+Recommendation
+Stick with plain JS for now (it’s simplest and most robust).
+If you want Android distribution next, do PWA first; if you need Play Store / APK, go Capacitor wrapper.
+Move to a framework only when you’re adding settings, multiple layouts, personalization, persistence, and more UI complexity—then pick Svelte (lightweight) or React (ecosystem).
+
+

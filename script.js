@@ -54,13 +54,63 @@ const qwertyLayout = [
   ],
 ];
 
+// Single place to bump the app version.
+const APP_VERSION = "0.1.0";
+
 const textOutput = document.getElementById("text-output");
 const keyGrid = document.getElementById("key-grid");
 const clearBtn = document.getElementById("clear-btn");
 const fullscreenBtn = document.getElementById("fullscreen-btn");
+const modeTitle = document.getElementById("mode-title");
+const versionLabel = document.getElementById("version-label");
 
 function setInputMode(mode) {
   document.body.dataset.inputMode = mode;
+}
+
+function isFullscreenActive() {
+  return Boolean(document.fullscreenElement);
+}
+
+function selectByRowCol(row, col) {
+  if (Number.isNaN(row) || Number.isNaN(col)) {
+    return;
+  }
+  if (!qwertyLayout[row] || !qwertyLayout[row][col]) {
+    return;
+  }
+  state.selectedRow = row;
+  state.selectedCol = col;
+  syncPreviewToSelection();
+  updateUI();
+}
+
+function applyModeForEnvironment() {
+  if (isFullscreenActive()) {
+    setInputMode("mouse-fullscreen");
+    state.selectedRow = null;
+    state.selectedCol = null;
+    state.pendingCharacter = "";
+    updateUI();
+    return;
+  }
+
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+    setInputMode("touch");
+    state.selectedRow = null;
+    state.selectedCol = null;
+    state.pendingCharacter = "";
+    updateUI();
+    return;
+  }
+
+  setInputMode("keyboard");
+  if (state.selectedRow === null || state.selectedCol === null) {
+    state.selectedRow = 1;
+    state.selectedCol = 0;
+  }
+  syncPreviewToSelection();
+  updateUI();
 }
 
 const state = {
@@ -99,6 +149,20 @@ function updateUI() {
   const committed = escapeText(state.text);
   const mode = document.body.dataset.inputMode;
   const hasText = committed.length > 0;
+
+  if (versionLabel) {
+    versionLabel.textContent = `v${APP_VERSION}`;
+  }
+
+  if (modeTitle) {
+    if (mode === "touch") {
+      modeTitle.textContent = "Touchscreen mode - tap a letter, press delete for errors";
+    } else if (mode === "mouse-fullscreen") {
+      modeTitle.textContent = "Keyboard/mouse/trackball mode - select a letter and press enter";
+    } else {
+      modeTitle.textContent = "Keyboard mode - select a letter with the arrow keys and press enter";
+    }
+  }
 
   if (mode === "touch") {
     textOutput.innerHTML = hasText ? committed : "&nbsp;";
@@ -250,7 +314,9 @@ function bindTouchOrClick(button, action) {
 }
 
 document.addEventListener("keydown", (event) => {
-  setInputMode("keyboard");
+  if (!isFullscreenActive()) {
+    setInputMode("keyboard");
+  }
   if (event.key === "ArrowUp") {
     event.preventDefault();
     moveVertical(-1);
@@ -273,7 +339,14 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Enter") {
     event.preventDefault();
-    commitPendingCharacter();
+    if (document.body.dataset.inputMode === "mouse-fullscreen") {
+      const key = selectedKey();
+      if (key) {
+        activateKey(key);
+      }
+    } else {
+      commitPendingCharacter();
+    }
     return;
   }
   if (event.key === "Backspace") {
@@ -293,6 +366,84 @@ bindTouchOrClick(fullscreenBtn, () => {
 // - Suppress long-press context menus/callouts where possible.
 document.addEventListener("contextmenu", (event) => {
   if (event.target && keyGrid.contains(event.target)) {
+    event.preventDefault();
+  }
+});
+
+// Fullscreen mouse/trackball support:
+// - Move pointer to select (highlight only).
+// - Click or press Enter to commit selected key.
+keyGrid.addEventListener(
+  "mousemove",
+  (event) => {
+    if (document.body.dataset.inputMode !== "mouse-fullscreen") {
+      return;
+    }
+    const rawTarget = event.target;
+    const cell = rawTarget instanceof HTMLElement ? rawTarget.closest(".key-cell") : null;
+    if (!(cell instanceof HTMLElement)) {
+      return;
+    }
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    if (Number.isNaN(row) || Number.isNaN(col)) {
+      return;
+    }
+    if (state.selectedRow === row && state.selectedCol === col) {
+      return;
+    }
+    selectByRowCol(row, col);
+  },
+  { passive: true },
+);
+
+keyGrid.addEventListener(
+  "click",
+  (event) => {
+    if (document.body.dataset.inputMode !== "mouse-fullscreen") {
+      return;
+    }
+    const rawTarget = event.target;
+    const cell = rawTarget instanceof HTMLElement ? rawTarget.closest(".key-cell") : null;
+    if (!(cell instanceof HTMLElement)) {
+      return;
+    }
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    if (Number.isNaN(row) || Number.isNaN(col)) {
+      return;
+    }
+    selectByRowCol(row, col);
+    activateKey(qwertyLayout[row][col]);
+    event.preventDefault();
+  },
+  { passive: false },
+);
+
+// Prevent trackpad/mouse wheel scroll from moving content in fullscreen mouse mode.
+document.addEventListener(
+  "wheel",
+  (event) => {
+    if (document.body.dataset.inputMode !== "mouse-fullscreen") {
+      return;
+    }
+    event.preventDefault();
+  },
+  { passive: false },
+);
+
+// Prevent common scroll keys from shifting focus/viewport in fullscreen mouse mode.
+document.addEventListener("keydown", (event) => {
+  if (document.body.dataset.inputMode !== "mouse-fullscreen") {
+    return;
+  }
+  if (
+    event.key === " " ||
+    event.key === "PageUp" ||
+    event.key === "PageDown" ||
+    event.key === "Home" ||
+    event.key === "End"
+  ) {
     event.preventDefault();
   }
 });
@@ -543,13 +694,8 @@ keyGrid.addEventListener(
 );
 
 // Default mode based on device input characteristics.
-if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
-  setInputMode("touch");
-} else {
-  setInputMode("keyboard");
-  state.selectedRow = 1;
-  state.selectedCol = 0;
-  syncPreviewToSelection();
-}
+document.addEventListener("fullscreenchange", () => {
+  applyModeForEnvironment();
+});
 
-updateUI();
+applyModeForEnvironment();

@@ -28,10 +28,12 @@
       <section class="top-controls" aria-label="Controls">
         <button id="clear-btn" class="top-btn" type="button">Clear</button>
         <button id="fullscreen-btn" class="top-btn" type="button">Full Screen</button>
+        <div class="top-spacer" aria-hidden="true"></div>
+        <div id="version-label" class="version-label" aria-label="App version"></div>
       </section>
 
       <section class="display-panel" aria-live="polite">
-        <h1 class="panel-title">Your text will appear here</h1>
+        <h1 id="mode-title" class="panel-title">Keyboard mode</h1>
         <output id="text-output" class="text-output" aria-label="Entered text"></output>
       </section>
 

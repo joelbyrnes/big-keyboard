@@ -40,6 +40,19 @@ body {
   justify-content: flex-start;
 }
 
+.top-spacer {
+  flex: 1;
+}
+
+.version-label {
+  font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+  font-weight: 700;
+  color: var(--accent-strong);
+  padding: 0 0.25rem;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .top-btn {
   appearance: none;
   border: 2px solid var(--accent-strong);
@@ -108,6 +121,16 @@ body {
 
 body[data-input-mode="touch"] .preview-char {
   display: none;
+}
+
+body[data-input-mode="mouse-fullscreen"] {
+  cursor: none;
+}
+
+body[data-input-mode="mouse-fullscreen"] .key-grid,
+body[data-input-mode="mouse-fullscreen"] .key-cell,
+body[data-input-mode="mouse-fullscreen"] .keyboard-panel {
+  cursor: none;
 }
 
 @keyframes cursor-blink {
