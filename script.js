@@ -70,11 +70,13 @@ const keymapResetBtn = document.getElementById("keymap-reset-btn");
 const keymapCaptureHint = document.getElementById("keymap-capture-hint");
 const speechResetBtn = document.getElementById("speech-reset-btn");
 const speechTestBtn = document.getElementById("speech-test-btn");
+const speechEnabledToggle = document.getElementById("speech-enabled-toggle");
 const themeSelect = document.getElementById("theme-select");
 
 const KEYMAP_STORAGE_KEY = "bigKeyboard.keymap.v1";
 const THEME_STORAGE_KEY = "bigKeyboard.theme.v1";
 const THEME_OPTIONS = ["system", "dark", "light"];
+const SPEECH_STORAGE_KEY = "bigKeyboard.speechEnabled.v1";
 
 const DEFAULT_KEYMAP = {
   up: "ArrowUp",
@@ -206,6 +208,33 @@ const speech = {
   lastText: "",
   lastAtMs: 0,
 };
+
+function loadSpeechEnabled() {
+  try {
+    const raw = localStorage.getItem(SPEECH_STORAGE_KEY);
+    if (raw === null) {
+      speech.enabled = true;
+      return;
+    }
+    speech.enabled = raw === "1";
+  } catch {
+    speech.enabled = true;
+  }
+}
+
+function saveSpeechEnabled() {
+  try {
+    localStorage.setItem(SPEECH_STORAGE_KEY, speech.enabled ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function syncSpeechToggleUI() {
+  if (speechEnabledToggle instanceof HTMLInputElement) {
+    speechEnabledToggle.checked = Boolean(speech.enabled);
+  }
+}
 
 function speakSelection(key) {
   if (!speech.enabled) {
@@ -510,6 +539,7 @@ function openOptions() {
   renderKeymapUI();
   cancelKeyCapture();
   applyTheme();
+  syncSpeechToggleUI();
   if (optionsCloseBtn instanceof HTMLElement) {
     optionsCloseBtn.focus();
   }
@@ -668,6 +698,16 @@ bindTouchOrClick(speechTestBtn, () => {
     // ignore
   }
 });
+
+if (speechEnabledToggle instanceof HTMLInputElement) {
+  speechEnabledToggle.addEventListener("change", () => {
+    speech.enabled = Boolean(speechEnabledToggle.checked);
+    saveSpeechEnabled();
+    if (!speech.enabled) {
+      resetSpeech();
+    }
+  });
+}
 
 if (themeSelect instanceof HTMLSelectElement) {
   themeSelect.addEventListener("change", () => {
@@ -1062,6 +1102,8 @@ document.addEventListener("fullscreenchange", () => {
 loadKeymap();
 loadThemePreference();
 applyTheme();
+loadSpeechEnabled();
+syncSpeechToggleUI();
 
 if (window.matchMedia) {
   systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
