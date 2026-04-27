@@ -66,6 +66,94 @@ const versionLabel = document.getElementById("version-label");
 const optionsBtn = document.getElementById("options-btn");
 const optionsModal = document.getElementById("options-modal");
 const optionsCloseBtn = document.getElementById("options-close-btn");
+const keymapResetBtn = document.getElementById("keymap-reset-btn");
+const keymapCaptureHint = document.getElementById("keymap-capture-hint");
+
+const KEYMAP_STORAGE_KEY = "bigKeyboard.keymap.v1";
+
+const DEFAULT_KEYMAP = {
+  up: "ArrowUp",
+  down: "ArrowDown",
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  delete: "Backspace",
+  enter: "Enter",
+  space: "Space",
+};
+
+let keymap = { ...DEFAULT_KEYMAP };
+let keymapCaptureAction = null;
+
+function loadKeymap() {
+  try {
+    const raw = localStorage.getItem(KEYMAP_STORAGE_KEY);
+    if (!raw) {
+      keymap = { ...DEFAULT_KEYMAP };
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      keymap = { ...DEFAULT_KEYMAP };
+      return;
+    }
+    keymap = { ...DEFAULT_KEYMAP, ...parsed };
+  } catch {
+    keymap = { ...DEFAULT_KEYMAP };
+  }
+}
+
+function saveKeymap() {
+  try {
+    localStorage.setItem(KEYMAP_STORAGE_KEY, JSON.stringify(keymap));
+  } catch {
+    // Ignore storage failures (private mode, quotas, etc).
+  }
+}
+
+function setCaptureHint(text) {
+  if (!(keymapCaptureHint instanceof HTMLElement)) {
+    return;
+  }
+  keymapCaptureHint.textContent = text;
+}
+
+function renderKeymapUI() {
+  if (!(optionsModal instanceof HTMLElement)) {
+    return;
+  }
+  const nodes = optionsModal.querySelectorAll("[data-keymap-value]");
+  nodes.forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    const action = node.getAttribute("data-keymap-value");
+    if (!action) {
+      return;
+    }
+    const code = keymap[action] || DEFAULT_KEYMAP[action] || "";
+    node.textContent = code;
+  });
+}
+
+function beginKeyCapture(action) {
+  keymapCaptureAction = action;
+  setCaptureHint(`Press a key for “${action}”… (Esc to cancel)`);
+}
+
+function cancelKeyCapture() {
+  keymapCaptureAction = null;
+  setCaptureHint("");
+}
+
+function actionForEvent(event) {
+  const code = event.code;
+  for (const [action, mapped] of Object.entries(keymap)) {
+    if (mapped === code) {
+      return action;
+    }
+  }
+  return null;
+}
 
 const speech = {
   enabled: true,
@@ -358,6 +446,8 @@ function openOptions() {
     return;
   }
   optionsModal.hidden = false;
+  renderKeymapUI();
+  cancelKeyCapture();
   if (optionsCloseBtn instanceof HTMLElement) {
     optionsCloseBtn.focus();
   }
@@ -368,6 +458,7 @@ function closeOptions() {
     return;
   }
   optionsModal.hidden = true;
+  cancelKeyCapture();
   if (optionsBtn instanceof HTMLElement) {
     optionsBtn.focus();
   }
@@ -422,30 +513,53 @@ function bindTouchOrClick(button, action) {
 }
 
 document.addEventListener("keydown", (event) => {
+  // Key capture for remapping (only while modal is open).
+  if (keymapCaptureAction && optionsModal && optionsModal.hidden === false) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelKeyCapture();
+      return;
+    }
+    event.preventDefault();
+    keymap[keymapCaptureAction] = event.code;
+    saveKeymap();
+    renderKeymapUI();
+    cancelKeyCapture();
+    return;
+  }
+
   if (!isFullscreenActive()) {
     setInputMode("keyboard");
   }
-  if (event.key === "ArrowUp") {
+  const mappedAction = actionForEvent(event);
+  if (mappedAction === "up") {
     event.preventDefault();
     moveVertical(-1);
     return;
   }
-  if (event.key === "ArrowDown") {
+  if (mappedAction === "down") {
     event.preventDefault();
     moveVertical(1);
     return;
   }
-  if (event.key === "ArrowLeft") {
+  if (mappedAction === "left") {
     event.preventDefault();
     moveHorizontal(-1);
     return;
   }
-  if (event.key === "ArrowRight") {
+  if (mappedAction === "right") {
     event.preventDefault();
     moveHorizontal(1);
     return;
   }
-  if (event.key === "Enter") {
+  if (mappedAction === "space") {
+    event.preventDefault();
+    state.text += " ";
+    updateUI();
+    speakEnteredText();
+    return;
+  }
+  if (mappedAction === "enter") {
     event.preventDefault();
     if (document.body.dataset.inputMode === "mouse-fullscreen") {
       const key = selectedKey();
@@ -459,7 +573,7 @@ document.addEventListener("keydown", (event) => {
     }
     return;
   }
-  if (event.key === "Backspace") {
+  if (mappedAction === "delete") {
     event.preventDefault();
     deleteLast();
   }
@@ -471,11 +585,37 @@ bindTouchOrClick(fullscreenBtn, () => {
 });
 bindTouchOrClick(optionsBtn, openOptions);
 bindTouchOrClick(optionsCloseBtn, closeOptions);
+bindTouchOrClick(keymapResetBtn, () => {
+  keymap = { ...DEFAULT_KEYMAP };
+  saveKeymap();
+  renderKeymapUI();
+  cancelKeyCapture();
+});
+
+if (optionsModal instanceof HTMLElement) {
+  const changeButtons = optionsModal.querySelectorAll("[data-keymap-change]");
+  changeButtons.forEach((btn) => {
+    if (!(btn instanceof HTMLElement)) {
+      return;
+    }
+    btn.addEventListener("click", () => {
+      const action = btn.getAttribute("data-keymap-change");
+      if (!action) {
+        return;
+      }
+      beginKeyCapture(action);
+    });
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && optionsModal && optionsModal.hidden === false) {
     event.preventDefault();
-    closeOptions();
+    if (keymapCaptureAction) {
+      cancelKeyCapture();
+    } else {
+      closeOptions();
+    }
   }
 });
 
@@ -831,4 +971,5 @@ document.addEventListener("fullscreenchange", () => {
   applyModeForEnvironment();
 });
 
+loadKeymap();
 applyModeForEnvironment();

@@ -54,10 +54,65 @@
       >
         <h2 id="options-title" class="modal-title">Options</h2>
         <div id="options-body" class="modal-body">
-          For more info visit
-          <a href="https://github.com/joelbyrnes/big-keyboard" target="_blank" rel="noreferrer">
-            github.com/joelbyrnes/big-keyboard
-          </a>
+          <div class="options-section">
+            <div class="options-section-title">Key mapping</div>
+            <div class="options-hint">
+              Press “Change”, then press the physical key you want to use. Mappings are saved in this browser.
+            </div>
+
+            <div class="keymap-grid" aria-label="Key mapping controls">
+              <div class="keymap-row">
+                <div class="keymap-action">Up</div>
+                <div class="keymap-value" data-keymap-value="up"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="up">Change</button>
+              </div>
+              <div class="keymap-row">
+                <div class="keymap-action">Down</div>
+                <div class="keymap-value" data-keymap-value="down"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="down">Change</button>
+              </div>
+              <div class="keymap-row">
+                <div class="keymap-action">Left</div>
+                <div class="keymap-value" data-keymap-value="left"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="left">Change</button>
+              </div>
+              <div class="keymap-row">
+                <div class="keymap-action">Right</div>
+                <div class="keymap-value" data-keymap-value="right"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="right">Change</button>
+              </div>
+              <div class="keymap-row">
+                <div class="keymap-action">Delete</div>
+                <div class="keymap-value" data-keymap-value="delete"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="delete">Change</button>
+              </div>
+              <div class="keymap-row">
+                <div class="keymap-action">Enter</div>
+                <div class="keymap-value" data-keymap-value="enter"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="enter">Change</button>
+              </div>
+              <div class="keymap-row">
+                <div class="keymap-action">Space</div>
+                <div class="keymap-value" data-keymap-value="space"></div>
+                <button class="top-btn keymap-btn" type="button" data-keymap-change="space">Change</button>
+              </div>
+            </div>
+
+            <div class="options-inline-actions">
+              <button id="keymap-reset-btn" class="top-btn" type="button">Reset to defaults</button>
+              <div id="keymap-capture-hint" class="options-hint" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="options-section">
+            <div class="options-section-title">More info</div>
+            <div>
+              Visit
+              <a href="https://github.com/joelbyrnes/big-keyboard" target="_blank" rel="noreferrer">
+                github.com/joelbyrnes/big-keyboard
+              </a>
+            </div>
+          </div>
         </div>
         <div class="modal-actions">
           <button id="options-close-btn" class="top-btn" type="button">Close</button>
