@@ -1,3 +1,6 @@
+// Single place to bump the app version.
+const APP_VERSION = "0.2.0";
+
 const qwertyLayout = [
   [
     { label: "1", value: "1", type: "char" },
@@ -54,9 +57,6 @@ const qwertyLayout = [
   ],
 ];
 
-// Single place to bump the app version.
-const APP_VERSION = "0.1.1";
-
 const textOutput = document.getElementById("text-output");
 const keyGrid = document.getElementById("key-grid");
 const clearBtn = document.getElementById("clear-btn");
@@ -68,6 +68,8 @@ const optionsModal = document.getElementById("options-modal");
 const optionsCloseBtn = document.getElementById("options-close-btn");
 const keymapResetBtn = document.getElementById("keymap-reset-btn");
 const keymapCaptureHint = document.getElementById("keymap-capture-hint");
+const speechResetBtn = document.getElementById("speech-reset-btn");
+const speechTestBtn = document.getElementById("speech-test-btn");
 
 const KEYMAP_STORAGE_KEY = "bigKeyboard.keymap.v1";
 
@@ -235,6 +237,21 @@ function speakEnteredText() {
   } catch {
     // Ignore speech failures (permissions, device support, etc).
   }
+}
+
+function resetSpeech() {
+  if (!("speechSynthesis" in window)) {
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+    // Some engines can remain paused after lots of cancels.
+    window.speechSynthesis.resume();
+  } catch {
+    // ignore
+  }
+  speech.lastText = "";
+  speech.lastAtMs = 0;
 }
 
 function setInputMode(mode) {
@@ -590,6 +607,21 @@ bindTouchOrClick(keymapResetBtn, () => {
   saveKeymap();
   renderKeymapUI();
   cancelKeyCapture();
+});
+bindTouchOrClick(speechResetBtn, () => {
+  resetSpeech();
+});
+bindTouchOrClick(speechTestBtn, () => {
+  resetSpeech();
+  try {
+    const utterance = new SpeechSynthesisUtterance("speech test");
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // ignore
+  }
 });
 
 if (optionsModal instanceof HTMLElement) {

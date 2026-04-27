@@ -93,6 +93,8 @@ body {
   place-items: center;
   padding: 1rem;
   z-index: 1000;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal {
@@ -102,12 +104,26 @@ body {
   border-radius: 1rem;
   padding: 1rem;
   font-size: clamp(0.88rem, 1.9vw, 1.05rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .modal-title {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 1.25em;
   font-weight: 800;
+}
+
+.modal-close-btn {
+  flex: 0 0 auto;
 }
 
 .modal-body {
@@ -189,13 +205,6 @@ body {
 .modal-body a {
   color: var(--accent);
   font-weight: 800;
-}
-
-.modal-actions {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
 }
 
 .display-panel,

@@ -52,7 +52,10 @@
         aria-labelledby="options-title"
         aria-describedby="options-body"
       >
-        <h2 id="options-title" class="modal-title">Options</h2>
+        <div class="modal-header">
+          <h2 id="options-title" class="modal-title">Options</h2>
+          <button id="options-close-btn" class="top-btn modal-close-btn" type="button">Close</button>
+        </div>
         <div id="options-body" class="modal-body">
           <div class="options-section">
             <div class="options-section-title">Key mapping</div>
@@ -105,6 +108,17 @@
           </div>
 
           <div class="options-section">
+            <div class="options-section-title">Speech</div>
+            <div class="options-hint">
+              <!--If you move/press keys very quickly, speech may be repeatedly cancelled. Use Reset/Test to recover. -->
+            </div>
+            <div class="options-inline-actions">
+              <button id="speech-test-btn" class="top-btn" type="button">Test speech</button>
+              <button id="speech-reset-btn" class="top-btn" type="button">Reset speech</button>
+            </div>
+          </div>
+
+          <div class="options-section">
             <div class="options-section-title">More info</div>
             <div>
               Visit
@@ -113,9 +127,6 @@
               </a>
             </div>
           </div>
-        </div>
-        <div class="modal-actions">
-          <button id="options-close-btn" class="top-btn" type="button">Close</button>
         </div>
       </div>
     </div>
