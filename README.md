@@ -30,6 +30,8 @@ In this project I am also evaluating Cursor for development, so this is almost e
 - **Low cognitive load:** one selected character at a time with explicit commit.
 - **Readable output:** text display uses large font for short, slow text entry.
 
-## Run
+## Development 
+
+### Run
 
 Open `index.html` in a browser.

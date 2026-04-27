@@ -27,8 +27,10 @@
     <main class="app" aria-label="Accessible text input tool">
       <section class="top-controls" aria-label="Controls">
         <button id="clear-btn" class="top-btn" type="button">Clear</button>
+        <div class="top-spacer" aria-hidden="true"></div>
         <button id="fullscreen-btn" class="top-btn" type="button">Full Screen</button>
         <div class="top-spacer" aria-hidden="true"></div>
+        <button id="options-btn" class="top-btn" type="button">Options</button>
         <div id="version-label" class="version-label" aria-label="App version"></div>
       </section>
 
@@ -42,5 +44,25 @@
       </section>
     </main>
 
+    <div id="options-modal" class="modal-overlay" hidden>
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="options-title"
+        aria-describedby="options-body"
+      >
+        <h2 id="options-title" class="modal-title">Options</h2>
+        <div id="options-body" class="modal-body">
+          For more info visit
+          <a href="https://github.com/joelbyrnes/big-keyboard" target="_blank" rel="noreferrer">
+            github.com/joelbyrnes/big-keyboard
+          </a>
+        </div>
+        <div class="modal-actions">
+          <button id="options-close-btn" class="top-btn" type="button">Close</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

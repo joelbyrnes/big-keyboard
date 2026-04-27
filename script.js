@@ -55,7 +55,7 @@ const qwertyLayout = [
 ];
 
 // Single place to bump the app version.
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.1.1";
 
 const textOutput = document.getElementById("text-output");
 const keyGrid = document.getElementById("key-grid");
@@ -63,6 +63,9 @@ const clearBtn = document.getElementById("clear-btn");
 const fullscreenBtn = document.getElementById("fullscreen-btn");
 const modeTitle = document.getElementById("mode-title");
 const versionLabel = document.getElementById("version-label");
+const optionsBtn = document.getElementById("options-btn");
+const optionsModal = document.getElementById("options-modal");
+const optionsCloseBtn = document.getElementById("options-close-btn");
 
 function setInputMode(mode) {
   document.body.dataset.inputMode = mode;
@@ -265,6 +268,26 @@ async function toggleFullscreen() {
   }
 }
 
+function openOptions() {
+  if (!(optionsModal instanceof HTMLElement)) {
+    return;
+  }
+  optionsModal.hidden = false;
+  if (optionsCloseBtn instanceof HTMLElement) {
+    optionsCloseBtn.focus();
+  }
+}
+
+function closeOptions() {
+  if (!(optionsModal instanceof HTMLElement)) {
+    return;
+  }
+  optionsModal.hidden = true;
+  if (optionsBtn instanceof HTMLElement) {
+    optionsBtn.focus();
+  }
+}
+
 function activateKey(key) {
   if (key.type === "char") {
     state.text += key.value;
@@ -359,6 +382,28 @@ bindTouchOrClick(clearBtn, clearAll);
 bindTouchOrClick(fullscreenBtn, () => {
   void toggleFullscreen();
 });
+bindTouchOrClick(optionsBtn, openOptions);
+bindTouchOrClick(optionsCloseBtn, closeOptions);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && optionsModal && optionsModal.hidden === false) {
+    event.preventDefault();
+    closeOptions();
+  }
+});
+
+if (optionsModal instanceof HTMLElement) {
+  optionsModal.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.target === optionsModal) {
+        event.preventDefault();
+        closeOptions();
+      }
+    },
+    { passive: false },
+  );
+}
 
 // Touch / pointer support:
 // - Tap a key to activate it immediately (no Enter required).
