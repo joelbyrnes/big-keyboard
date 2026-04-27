@@ -209,6 +209,64 @@ const speech = {
   lastAtMs: 0,
 };
 
+let pendingSpeechTimer = null;
+let pendingSpeechText = "";
+
+function clearPendingSpeech() {
+  if (pendingSpeechTimer !== null) {
+    clearTimeout(pendingSpeechTimer);
+    pendingSpeechTimer = null;
+  }
+  pendingSpeechText = "";
+}
+
+function speakNow(text, { force = false } = {}) {
+  if (!speech.enabled) {
+    return;
+  }
+  if (!("speechSynthesis" in window)) {
+    return;
+  }
+  if (!text) {
+    return;
+  }
+
+  const now = Date.now();
+  if (!force && speech.lastText === text && now - speech.lastAtMs < 250) {
+    return;
+  }
+  speech.lastText = text;
+  speech.lastAtMs = now;
+
+  try {
+    // Resume in case the engine got paused/hung after many cancels.
+    window.speechSynthesis.resume();
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // Ignore speech failures (permissions, device support, etc).
+  }
+}
+
+function scheduleSpeak(text) {
+  if (!speech.enabled) {
+    return;
+  }
+  clearPendingSpeech();
+  pendingSpeechText = text;
+  // Debounce so rapid selection changes don't cancel speech continuously.
+  pendingSpeechTimer = setTimeout(() => {
+    pendingSpeechTimer = null;
+    const toSpeak = pendingSpeechText;
+    pendingSpeechText = "";
+    speakNow(toSpeak);
+  }, 120);
+}
+
 function loadSpeechEnabled() {
   try {
     const raw = localStorage.getItem(SPEECH_STORAGE_KEY);
@@ -268,23 +326,7 @@ function speakSelection(key) {
     return;
   }
 
-  const now = Date.now();
-  if (speech.lastText === text && now - speech.lastAtMs < 250) {
-    return;
-  }
-  speech.lastText = text;
-  speech.lastAtMs = now;
-
-  try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    window.speechSynthesis.speak(utterance);
-  } catch {
-    // Ignore speech failures (permissions, device support, etc).
-  }
+  scheduleSpeak(text);
 }
 
 function speakEnteredText() {
@@ -300,16 +342,8 @@ function speakEnteredText() {
     return;
   }
 
-  try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text.toLowerCase());
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    window.speechSynthesis.speak(utterance);
-  } catch {
-    // Ignore speech failures (permissions, device support, etc).
-  }
+  clearPendingSpeech();
+  speakNow(text.toLowerCase(), { force: true });
 }
 
 function resetSpeech() {
@@ -323,6 +357,7 @@ function resetSpeech() {
   } catch {
     // ignore
   }
+  clearPendingSpeech();
   speech.lastText = "";
   speech.lastAtMs = 0;
 }
@@ -370,8 +405,9 @@ function applyModeForEnvironment() {
 
   setInputMode("keyboard");
   if (state.selectedRow === null || state.selectedCol === null) {
-    state.selectedRow = 1;
-    state.selectedCol = 0;
+    // Default selection: G key (home-row anchor)
+    state.selectedRow = 2;
+    state.selectedCol = 4;
   }
   syncPreviewToSelection();
   updateUI();
@@ -384,6 +420,16 @@ const state = {
   text: "",
 };
 
+function normalizeForEntry(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+  if (/^[A-Z]$/.test(value)) {
+    return value.toLowerCase();
+  }
+  return value;
+}
+
 function selectedKey() {
   if (state.selectedRow === null || state.selectedCol === null) {
     return null;
@@ -394,7 +440,7 @@ function selectedKey() {
 function syncPreviewToSelection() {
   const key = selectedKey();
   if (key && key.type === "char") {
-    state.pendingCharacter = key.value;
+    state.pendingCharacter = normalizeForEntry(key.value);
   }
 }
 
@@ -477,8 +523,8 @@ function renderKeyGrid() {
 
 function moveVertical(step) {
   if (state.selectedRow === null || state.selectedCol === null) {
-    state.selectedRow = 1;
-    state.selectedCol = 0;
+    state.selectedRow = 2;
+    state.selectedCol = 4;
   }
   const nextRow = Math.max(0, Math.min(qwertyLayout.length - 1, state.selectedRow + step));
   state.selectedRow = nextRow;
@@ -491,8 +537,8 @@ function moveVertical(step) {
 
 function moveHorizontal(step) {
   if (state.selectedRow === null || state.selectedCol === null) {
-    state.selectedRow = 1;
-    state.selectedCol = 0;
+    state.selectedRow = 2;
+    state.selectedCol = 4;
   }
   const rowLength = qwertyLayout[state.selectedRow].length;
   state.selectedCol = (state.selectedCol + step + rowLength) % rowLength;
@@ -502,7 +548,7 @@ function moveHorizontal(step) {
 }
 
 function commitPendingCharacter() {
-  state.text += state.pendingCharacter;
+  state.text += normalizeForEntry(state.pendingCharacter);
   updateUI();
 }
 
@@ -558,9 +604,9 @@ function closeOptions() {
 
 function activateKey(key) {
   if (key.type === "char") {
-    state.text += key.value;
+    state.text += normalizeForEntry(key.value);
     if (document.body.dataset.inputMode !== "touch") {
-      state.pendingCharacter = key.value;
+      state.pendingCharacter = normalizeForEntry(key.value);
     }
     updateUI();
     return;
@@ -688,15 +734,7 @@ bindTouchOrClick(speechResetBtn, () => {
 });
 bindTouchOrClick(speechTestBtn, () => {
   resetSpeech();
-  try {
-    const utterance = new SpeechSynthesisUtterance("speech test");
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    window.speechSynthesis.speak(utterance);
-  } catch {
-    // ignore
-  }
+  speakNow("speech test", { force: true });
 });
 
 if (speechEnabledToggle instanceof HTMLInputElement) {
