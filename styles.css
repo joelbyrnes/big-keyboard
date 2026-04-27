@@ -1,4 +1,6 @@
-:root {
+/* Dark mode (default) */
+:root,
+body[data-theme="dark"] {
   /* High-contrast palette tuned for bright rooms */
   --bg: #05070d;
   --panel: #0b1220;
@@ -9,10 +11,28 @@
 
   --surface: #070a12;
   /* Key "caps" should be brighter than the panel */
-  --surface-2: #182340;
-  --action-surface: #1a416a;
-  --selected-surface: #0a3a5f;
+  --surface-2: #243152;
+  --action-surface: #2a5a8a;
+  --selected-surface: #0f4a78;
   --selected-glow: rgba(56, 189, 248, 0.55);
+}
+
+/* Light mode */
+body[data-theme="light"] {
+  /* Softer light theme (less glare than pure white) */
+  --bg: #e9eef5;
+  --panel: #f4f7fb;
+  --text: #0b1220;
+  --accent: #0369a1;
+  --accent-strong: #0284c7;
+  --danger: #b91c1c;
+
+  --surface: #ffffff;
+  /* Keys should read as "caps" against the panel */
+  --surface-2: #ffffff;
+  --action-surface: #e0f2fe;
+  --selected-surface: #bae6fd;
+  --selected-glow: rgba(2, 132, 199, 0.25);
 }
 
 * {
@@ -75,6 +95,16 @@ body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.top-btn#options-btn {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.28);
+}
+
+.top-btn#options-btn:focus-visible {
+  outline: 3px solid #c4b5fd;
+  outline-offset: 2px;
 }
 
 .top-btn:active {
@@ -154,7 +184,8 @@ body {
 }
 
 .options-hint {
-  color: rgba(248, 250, 252, 0.8);
+  color: var(--text);
+  opacity: 0.8;
   font-size: 0.95em;
   margin-bottom: 0.6rem;
 }
@@ -200,6 +231,24 @@ body {
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.options-label {
+  font-weight: 900;
+}
+
+.options-select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 2px solid rgba(56, 189, 248, 0.45);
+  border-radius: 0.75rem;
+  padding: 0.45em 0.8em;
+  font-size: 1em;
+}
+
+.options-select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .modal-body a {
@@ -326,9 +375,9 @@ body[data-input-mode="mouse-fullscreen"] .keyboard-panel {
 }
 
 .key-cell.selected {
-  border-color: #ffffff;
+  border-color: var(--accent-strong);
   background: var(--selected-surface);
-  outline: 4px solid #ffffff;
+  outline: 4px solid var(--accent-strong);
   outline-offset: 0;
   box-shadow: 0 0 0 3px var(--selected-glow);
 }

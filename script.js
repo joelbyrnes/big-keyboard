@@ -1,5 +1,5 @@
 // Single place to bump the app version.
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
 
 const qwertyLayout = [
   [
@@ -70,8 +70,11 @@ const keymapResetBtn = document.getElementById("keymap-reset-btn");
 const keymapCaptureHint = document.getElementById("keymap-capture-hint");
 const speechResetBtn = document.getElementById("speech-reset-btn");
 const speechTestBtn = document.getElementById("speech-test-btn");
+const themeSelect = document.getElementById("theme-select");
 
 const KEYMAP_STORAGE_KEY = "bigKeyboard.keymap.v1";
+const THEME_STORAGE_KEY = "bigKeyboard.theme.v1";
+const THEME_OPTIONS = ["system", "dark", "light"];
 
 const DEFAULT_KEYMAP = {
   up: "ArrowUp",
@@ -85,6 +88,9 @@ const DEFAULT_KEYMAP = {
 
 let keymap = { ...DEFAULT_KEYMAP };
 let keymapCaptureAction = null;
+
+let themePreference = "system";
+let systemThemeMedia = null;
 
 function loadKeymap() {
   try {
@@ -155,6 +161,44 @@ function actionForEvent(event) {
     }
   }
   return null;
+}
+
+function loadThemePreference() {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY);
+    if (value && THEME_OPTIONS.includes(value)) {
+      themePreference = value;
+    } else {
+      themePreference = "system";
+    }
+  } catch {
+    themePreference = "system";
+  }
+}
+
+function saveThemePreference() {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+  } catch {
+    // ignore
+  }
+}
+
+function effectiveTheme() {
+  if (themePreference === "dark" || themePreference === "light") {
+    return themePreference;
+  }
+  const prefersDark =
+    window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return prefersDark ? "dark" : "light";
+}
+
+function applyTheme() {
+  const theme = effectiveTheme();
+  document.body.dataset.theme = theme;
+  if (themeSelect instanceof HTMLSelectElement) {
+    themeSelect.value = themePreference;
+  }
 }
 
 const speech = {
@@ -465,6 +509,7 @@ function openOptions() {
   optionsModal.hidden = false;
   renderKeymapUI();
   cancelKeyCapture();
+  applyTheme();
   if (optionsCloseBtn instanceof HTMLElement) {
     optionsCloseBtn.focus();
   }
@@ -623,6 +668,17 @@ bindTouchOrClick(speechTestBtn, () => {
     // ignore
   }
 });
+
+if (themeSelect instanceof HTMLSelectElement) {
+  themeSelect.addEventListener("change", () => {
+    const value = themeSelect.value;
+    if (THEME_OPTIONS.includes(value)) {
+      themePreference = value;
+      saveThemePreference();
+      applyTheme();
+    }
+  });
+}
 
 if (optionsModal instanceof HTMLElement) {
   const changeButtons = optionsModal.querySelectorAll("[data-keymap-change]");
@@ -1004,4 +1060,20 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 loadKeymap();
+loadThemePreference();
+applyTheme();
+
+if (window.matchMedia) {
+  systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+  const handler = () => {
+    if (themePreference === "system") {
+      applyTheme();
+    }
+  };
+  if (typeof systemThemeMedia.addEventListener === "function") {
+    systemThemeMedia.addEventListener("change", handler);
+  } else if (typeof systemThemeMedia.addListener === "function") {
+    systemThemeMedia.addListener(handler);
+  }
+}
 applyModeForEnvironment();
