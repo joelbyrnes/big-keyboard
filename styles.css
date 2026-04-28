@@ -306,16 +306,6 @@ body[data-input-mode="touch"] .preview-char {
   display: none;
 }
 
-body[data-input-mode="mouse-fullscreen"] {
-  cursor: none;
-}
-
-body[data-input-mode="mouse-fullscreen"] .key-grid,
-body[data-input-mode="mouse-fullscreen"] .key-cell,
-body[data-input-mode="mouse-fullscreen"] .keyboard-panel {
-  cursor: none;
-}
-
 @keyframes cursor-blink {
   0%,
   45% {
