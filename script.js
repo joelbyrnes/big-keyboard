@@ -1,5 +1,5 @@
 // Single place to bump the app version.
-const APP_VERSION = "0.3.1";
+const APP_VERSION = "0.3.2";
 
 const qwertyLayout = [
   [
@@ -582,7 +582,7 @@ function updateUI() {
 
   if (modeTitle) {
     if (mode === "touch") {
-      modeTitle.textContent = "Touchscreen mode - tap a letter, press delete for errors";
+      modeTitle.textContent = "Touchscreen mode - tap to select, then tap Enter to commit";
     } else if (mode === "mouse-fullscreen") {
       modeTitle.textContent = "Keyboard/mouse/trackball mode - select a letter and press enter";
     } else {
@@ -590,14 +590,9 @@ function updateUI() {
     }
   }
 
-  if (mode === "touch") {
-    textOutput.innerHTML = hasText ? committed : "&nbsp;";
-    textOutput.setAttribute("aria-label", `Entered text: ${state.text}`);
-  } else {
-    const preview = escapeText(displayCharacterForText());
-    textOutput.innerHTML = `${committed}<span class="preview-char">${preview}</span>`;
-    textOutput.setAttribute("aria-label", `Entered text: ${state.text}${state.pendingCharacter}`);
-  }
+  const preview = escapeText(displayCharacterForText());
+  textOutput.innerHTML = `${committed}<span class="preview-char">${preview}</span>`;
+  textOutput.setAttribute("aria-label", `Entered text: ${state.text}${state.pendingCharacter}`);
 
   // Keep the newest character visible.
   textOutput.scrollLeft = textOutput.scrollWidth;
@@ -1001,7 +996,7 @@ if (optionsModal instanceof HTMLElement) {
 }
 
 // Touch / pointer support:
-// - Tap a key to activate it immediately (no Enter required).
+// - Tap a key to select it (activation requires Enter).
 // - Dragging won't activate.
 // - Suppress long-press context menus/callouts where possible.
 //
@@ -1170,10 +1165,7 @@ keyGrid.addEventListener(
       state.selectedCol = col;
       syncPreviewToSelection();
       updateUI();
-
-      // Touch mode: if it becomes selected, commit immediately.
-      activateKey(qwertyLayout[row][col]);
-      activatedThisGesture = true;
+      speakSelection(qwertyLayout[row][col]);
     }
 
     event.preventDefault();
@@ -1216,11 +1208,18 @@ keyGrid.addEventListener(
       return;
     }
 
-    if (activeCell && !moved && !activatedThisGesture) {
+    if (activeCell && !moved) {
       const row = Number(activeCell.dataset.row);
       const col = Number(activeCell.dataset.col);
       if (!Number.isNaN(row) && !Number.isNaN(col)) {
-        activateKey(qwertyLayout[row][col]);
+        const key = qwertyLayout[row]?.[col];
+        // In touch mode, actions (Enter/Delete) should activate on tap.
+        if (key && key.type !== "char") {
+          activateKey(key);
+          if (key.type === "commit") {
+            speakEnteredText();
+          }
+        }
       }
     }
 
@@ -1307,14 +1306,6 @@ keyGrid.addEventListener(
     touchStartCell = cell;
     selectCell(cell);
 
-    // Touch mode: if it becomes selected, commit immediately.
-    const row = Number(cell.dataset.row);
-    const col = Number(cell.dataset.col);
-    if (!Number.isNaN(row) && !Number.isNaN(col)) {
-      activateKey(qwertyLayout[row][col]);
-      touchActivatedThisGesture = true;
-    }
-
     event.preventDefault();
   },
   { passive: false },
@@ -1361,11 +1352,18 @@ keyGrid.addEventListener(
         continue;
       }
 
-      if (touchStartCell && !touchMoved && !touchActivatedThisGesture) {
+      if (touchStartCell && !touchMoved) {
         const row = Number(touchStartCell.dataset.row);
         const col = Number(touchStartCell.dataset.col);
         if (!Number.isNaN(row) && !Number.isNaN(col)) {
-          activateKey(qwertyLayout[row][col]);
+          const key = qwertyLayout[row]?.[col];
+          // In touch mode, actions (Enter/Delete) should activate on tap.
+          if (key && key.type !== "char") {
+            activateKey(key);
+            if (key.type === "commit") {
+              speakEnteredText();
+            }
+          }
         }
       }
 

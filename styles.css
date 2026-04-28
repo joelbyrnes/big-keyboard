@@ -327,10 +327,6 @@ body {
   animation: cursor-blink 1s steps(1, end) infinite;
 }
 
-body[data-input-mode="touch"] .preview-char {
-  display: none;
-}
-
 @keyframes cursor-blink {
   0%,
   45% {
