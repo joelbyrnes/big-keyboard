@@ -802,10 +802,28 @@ if (optionsModal instanceof HTMLElement) {
 // - Tap a key to activate it immediately (no Enter required).
 // - Dragging won't activate.
 // - Suppress long-press context menus/callouts where possible.
+//
+// Fullscreen mouse mode:
+// - Right-click should also commit the selected key.
 document.addEventListener("contextmenu", (event) => {
-  if (event.target && keyGrid.contains(event.target)) {
-    event.preventDefault();
+  if (!event.target || !keyGrid.contains(event.target)) {
+    return;
   }
+
+  if (document.body.dataset.inputMode === "mouse-fullscreen") {
+    const rawTarget = event.target;
+    const cell = rawTarget instanceof HTMLElement ? rawTarget.closest(".key-cell") : null;
+    if (cell instanceof HTMLElement) {
+      const row = Number(cell.dataset.row);
+      const col = Number(cell.dataset.col);
+      if (!Number.isNaN(row) && !Number.isNaN(col)) {
+        selectByRowCol(row, col);
+        activateKey(qwertyLayout[row][col]);
+      }
+    }
+  }
+
+  event.preventDefault();
 });
 
 // Fullscreen mouse/trackball support:
