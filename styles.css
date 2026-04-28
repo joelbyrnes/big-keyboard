@@ -380,6 +380,10 @@ body[data-input-mode="touch"] .preview-char {
   flex-grow: 2.2;
 }
 
+.key-cell.half {
+  flex-grow: 0.5;
+}
+
 .key-cell.small-text {
   font-size: clamp(1rem, 2.2vw, 1.4rem);
 }

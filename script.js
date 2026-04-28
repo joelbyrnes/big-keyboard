@@ -50,10 +50,10 @@ const qwertyLayout = [
   ],
   [
     { label: "Space", value: " ", type: "char", width: "extra-wide", smallText: true },
-    { label: ",", value: ",", type: "char" },
-    { label: ".", value: ".", type: "char" },
-    { label: "?", value: "?", type: "char" },
-    { label: "!", value: "!", type: "char" },
+    { label: ",", value: ",", type: "char", width: "half" },
+    { label: ".", value: ".", type: "char", width: "half" },
+    { label: "?", value: "?", type: "char", width: "half" },
+    { label: "!", value: "!", type: "char", width: "half" },
   ],
 ];
 
@@ -529,15 +529,64 @@ function renderKeyGrid() {
   }
 }
 
+function selectedCellCenterX() {
+  if (state.selectedRow === null || state.selectedCol === null) {
+    return null;
+  }
+  const cell = keyGrid.querySelector(
+    `.key-cell[data-row="${state.selectedRow}"][data-col="${state.selectedCol}"]`,
+  );
+  if (!(cell instanceof HTMLElement)) {
+    return null;
+  }
+  const rect = cell.getBoundingClientRect();
+  return rect.left + rect.width / 2;
+}
+
+function nearestColInRowByX(rowIndex, targetCenterX) {
+  const row = qwertyLayout[rowIndex];
+  if (!row || row.length === 0) {
+    return null;
+  }
+
+  let bestCol = 0;
+  let bestDist = Infinity;
+  for (let colIndex = 0; colIndex < row.length; colIndex += 1) {
+    const cell = keyGrid.querySelector(`.key-cell[data-row="${rowIndex}"][data-col="${colIndex}"]`);
+    if (!(cell instanceof HTMLElement)) {
+      continue;
+    }
+    const rect = cell.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const dist = Math.abs(centerX - targetCenterX);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestCol = colIndex;
+    }
+  }
+  return bestCol;
+}
+
 function moveVertical(step) {
   if (state.selectedRow === null || state.selectedCol === null) {
     state.selectedRow = 2;
     state.selectedCol = 4;
   }
+  const priorCenterX = selectedCellCenterX();
   const nextRow = Math.max(0, Math.min(qwertyLayout.length - 1, state.selectedRow + step));
   state.selectedRow = nextRow;
-  const maxCol = qwertyLayout[state.selectedRow].length - 1;
-  state.selectedCol = Math.min(state.selectedCol, maxCol);
+  if (priorCenterX !== null) {
+    const nearest = nearestColInRowByX(nextRow, priorCenterX);
+    if (nearest !== null) {
+      state.selectedCol = nearest;
+    } else {
+      const maxCol = qwertyLayout[state.selectedRow].length - 1;
+      state.selectedCol = Math.min(state.selectedCol, maxCol);
+    }
+  } else {
+    const maxCol = qwertyLayout[state.selectedRow].length - 1;
+    state.selectedCol = Math.min(state.selectedCol, maxCol);
+  }
   syncPreviewToSelection();
   updateUI();
   speakSelection(selectedKey());
