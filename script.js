@@ -91,6 +91,10 @@ const DEFAULT_KEYMAP = {
 let keymap = { ...DEFAULT_KEYMAP };
 let keymapCaptureAction = null;
 
+// Prevent OS key-repeat from triggering extra actions:
+// once a handled key is processed on keydown, ignore repeats until keyup.
+const pressedPhysicalKeys = new Set();
+
 let themePreference = "system";
 let systemThemeMedia = null;
 
@@ -449,6 +453,10 @@ function escapeText(value) {
 }
 
 function displayCharacterForText() {
+  const key = selectedKey();
+  if (key && key.type === "backspace") {
+    return "\u2190";
+  }
   if (state.pendingCharacter === " ") {
     return "\u2423";
   }
@@ -670,6 +678,14 @@ document.addEventListener("keydown", (event) => {
     setInputMode("keyboard");
   }
   const mappedAction = actionForEvent(event);
+  if (mappedAction) {
+    // Suppress unintended repeats from OS key-repeat settings.
+    if (pressedPhysicalKeys.has(event.code) || event.repeat) {
+      event.preventDefault();
+      return;
+    }
+    pressedPhysicalKeys.add(event.code);
+  }
   if (mappedAction === "up") {
     event.preventDefault();
     moveVertical(-1);
@@ -706,7 +722,12 @@ document.addEventListener("keydown", (event) => {
       }
       speakEnteredText();
     } else {
-      commitPendingCharacter();
+      const key = selectedKey();
+      if (key && key.type === "backspace") {
+        deleteLast();
+      } else {
+        commitPendingCharacter();
+      }
       speakEnteredText();
     }
     return;
@@ -715,6 +736,14 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     deleteLast();
   }
+});
+
+document.addEventListener("keyup", (event) => {
+  pressedPhysicalKeys.delete(event.code);
+});
+
+window.addEventListener("blur", () => {
+  pressedPhysicalKeys.clear();
 });
 
 bindTouchOrClick(clearBtn, clearAll);
