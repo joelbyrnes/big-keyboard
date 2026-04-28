@@ -1,5 +1,5 @@
 // Single place to bump the app version.
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.3.1";
 
 const qwertyLayout = [
   [
@@ -64,6 +64,7 @@ const fullscreenBtn = document.getElementById("fullscreen-btn");
 const modeTitle = document.getElementById("mode-title");
 const versionLabel = document.getElementById("version-label");
 const optionsBtn = document.getElementById("options-btn");
+const touchscreenStatus = document.getElementById("touchscreen-status");
 const optionsModal = document.getElementById("options-modal");
 const optionsCloseBtn = document.getElementById("options-close-btn");
 const keymapResetBtn = document.getElementById("keymap-reset-btn");
@@ -71,12 +72,14 @@ const keymapCaptureHint = document.getElementById("keymap-capture-hint");
 const speechResetBtn = document.getElementById("speech-reset-btn");
 const speechTestBtn = document.getElementById("speech-test-btn");
 const speechEnabledToggle = document.getElementById("speech-enabled-toggle");
+const touchEnabledToggle = document.getElementById("touch-enabled-toggle");
 const themeSelect = document.getElementById("theme-select");
 
 const KEYMAP_STORAGE_KEY = "bigKeyboard.keymap.v1";
 const THEME_STORAGE_KEY = "bigKeyboard.theme.v1";
 const THEME_OPTIONS = ["system", "dark", "light"];
 const SPEECH_STORAGE_KEY = "bigKeyboard.speechEnabled.v1";
+const TOUCH_STORAGE_KEY = "bigKeyboard.touchEnabled.v1";
 
 const DEFAULT_KEYMAP = {
   up: "ArrowUp",
@@ -97,6 +100,10 @@ const pressedPhysicalKeys = new Set();
 
 let themePreference = "system";
 let systemThemeMedia = null;
+
+const touchSettings = {
+  enabled: true,
+};
 
 function loadKeymap() {
   try {
@@ -284,6 +291,55 @@ function loadSpeechEnabled() {
   }
 }
 
+function loadTouchEnabled() {
+  try {
+    const raw = localStorage.getItem(TOUCH_STORAGE_KEY);
+    if (raw === null) {
+      touchSettings.enabled = true;
+      return;
+    }
+    touchSettings.enabled = raw === "1";
+  } catch {
+    touchSettings.enabled = true;
+  }
+}
+
+function saveTouchEnabled() {
+  try {
+    localStorage.setItem(TOUCH_STORAGE_KEY, touchSettings.enabled ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function syncTouchToggleUI() {
+  if (touchEnabledToggle instanceof HTMLInputElement) {
+    touchEnabledToggle.checked = Boolean(touchSettings.enabled);
+  }
+}
+
+function deviceHasTouchscreen() {
+  if (typeof navigator !== "undefined" && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 0) {
+    return true;
+  }
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+    return true;
+  }
+  return false;
+}
+
+function syncTouchStatusUI() {
+  if (!(touchscreenStatus instanceof HTMLElement)) {
+    return;
+  }
+  const hasTouch = deviceHasTouchscreen();
+  touchscreenStatus.hidden = !hasTouch;
+  if (!hasTouch) {
+    return;
+  }
+  touchscreenStatus.textContent = touchSettings.enabled ? "Touchscreen enabled" : "Touchscreen disabled";
+}
+
 function saveSpeechEnabled() {
   try {
     localStorage.setItem(SPEECH_STORAGE_KEY, speech.enabled ? "1" : "0");
@@ -399,17 +455,36 @@ function applyModeForEnvironment() {
   }
 
   if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
-    setInputMode("touch");
-    state.selectedRow = null;
-    state.selectedCol = null;
-    state.pendingCharacter = "";
-    updateUI();
-    return;
+    if (touchSettings.enabled) {
+      setInputMode("touch");
+      state.selectedRow = null;
+      state.selectedCol = null;
+      state.pendingCharacter = "";
+      updateUI();
+      return;
+    }
   }
 
   setInputMode("keyboard");
   if (state.selectedRow === null || state.selectedCol === null) {
     // Default selection: G key (home-row anchor)
+    state.selectedRow = 2;
+    state.selectedCol = 4;
+  }
+  syncPreviewToSelection();
+  updateUI();
+}
+
+function applyTouchEnabledState() {
+  if (touchSettings.enabled) {
+    return;
+  }
+  if (document.body.dataset.inputMode !== "touch") {
+    return;
+  }
+  // If touch is disabled while we're in touch mode, fall back to keyboard mode.
+  setInputMode("keyboard");
+  if (state.selectedRow === null || state.selectedCol === null) {
     state.selectedRow = 2;
     state.selectedCol = 4;
   }
@@ -825,6 +900,15 @@ if (speechEnabledToggle instanceof HTMLInputElement) {
   });
 }
 
+if (touchEnabledToggle instanceof HTMLInputElement) {
+  touchEnabledToggle.addEventListener("change", () => {
+    touchSettings.enabled = Boolean(touchEnabledToggle.checked);
+    saveTouchEnabled();
+    syncTouchStatusUI();
+    applyTouchEnabledState();
+  });
+}
+
 if (themeSelect instanceof HTMLSelectElement) {
   themeSelect.addEventListener("change", () => {
     const value = themeSelect.value;
@@ -997,6 +1081,9 @@ function isKeyCell(element) {
 keyGrid.addEventListener(
   "pointerdown",
   (event) => {
+    if (!touchSettings.enabled) {
+      return;
+    }
     if (event.pointerType && event.pointerType !== "touch") {
       return;
     }
@@ -1036,6 +1123,9 @@ keyGrid.addEventListener(
 keyGrid.addEventListener(
   "pointermove",
   (event) => {
+    if (!touchSettings.enabled) {
+      return;
+    }
     if (event.pointerType && event.pointerType !== "touch") {
       return;
     }
@@ -1055,6 +1145,9 @@ keyGrid.addEventListener(
 keyGrid.addEventListener(
   "pointerup",
   (event) => {
+    if (!touchSettings.enabled) {
+      return;
+    }
     if (event.pointerType && event.pointerType !== "touch") {
       return;
     }
@@ -1128,6 +1221,9 @@ function selectCell(cell) {
 keyGrid.addEventListener(
   "touchstart",
   (event) => {
+    if (!touchSettings.enabled) {
+      return;
+    }
     setInputMode("touch");
     if (!event.changedTouches || event.changedTouches.length === 0) {
       return;
@@ -1166,6 +1262,9 @@ keyGrid.addEventListener(
 keyGrid.addEventListener(
   "touchmove",
   (event) => {
+    if (!touchSettings.enabled) {
+      return;
+    }
     if (activeTouchId === null || !event.changedTouches) {
       return;
     }
@@ -1189,6 +1288,9 @@ keyGrid.addEventListener(
 keyGrid.addEventListener(
   "touchend",
   (event) => {
+    if (!touchSettings.enabled) {
+      return;
+    }
     if (activeTouchId === null || !event.changedTouches) {
       return;
     }
@@ -1238,6 +1340,9 @@ loadThemePreference();
 applyTheme();
 loadSpeechEnabled();
 syncSpeechToggleUI();
+loadTouchEnabled();
+syncTouchToggleUI();
+syncTouchStatusUI();
 
 if (window.matchMedia) {
   systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1253,3 +1358,4 @@ if (window.matchMedia) {
   }
 }
 applyModeForEnvironment();
+applyTouchEnabledState();

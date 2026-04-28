@@ -72,6 +72,19 @@ body {
   flex: 1;
 }
 
+.status-chip {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 800;
+  color: var(--text);
+  background: rgba(56, 189, 248, 0.12);
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
 .version-label {
   font-size: clamp(0.95rem, 2.2vw, 1.2rem);
   font-weight: 700;
@@ -235,6 +248,18 @@ body {
 
 .options-label {
   font-weight: 900;
+}
+
+.options-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+}
+
+.options-toggle input {
+  width: 1.2em;
+  height: 1.2em;
 }
 
 .options-select {

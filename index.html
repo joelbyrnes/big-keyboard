@@ -29,6 +29,7 @@
         <button id="clear-btn" class="top-btn" type="button">Clear</button>
         <div class="top-spacer" aria-hidden="true"></div>
         <button id="fullscreen-btn" class="top-btn" type="button">Full Screen</button>
+        <div id="touchscreen-status" class="status-chip" aria-label="Touchscreen status"></div>
         <div class="top-spacer" aria-hidden="true"></div>
         <button id="options-btn" class="top-btn" type="button">Options</button>
         <div id="version-label" class="version-label" aria-label="App version"></div>
@@ -57,6 +58,17 @@
           <button id="options-close-btn" class="top-btn modal-close-btn" type="button">Close</button>
         </div>
         <div id="options-body" class="modal-body">
+          <div class="options-section">
+            <div class="options-inline-actions">
+              <label class="options-label" for="touch-enabled-toggle">Touchscreen</label>
+              <label class="options-toggle">
+                <input id="touch-enabled-toggle" type="checkbox" checked />
+                Enable touchscreen mode
+              </label>
+              Disable this if you use another input method and touching the screen causes problems.
+            </div>
+          </div>
+
           <div class="options-section">
             <div class="options-inline-actions">
               <label class="options-label" for="theme-select">Theme</label>
