@@ -73,6 +73,7 @@ const speechResetBtn = document.getElementById("speech-reset-btn");
 const speechTestBtn = document.getElementById("speech-test-btn");
 const speechEnabledToggle = document.getElementById("speech-enabled-toggle");
 const touchEnabledToggle = document.getElementById("touch-enabled-toggle");
+const middleClickDeleteToggle = document.getElementById("middle-click-delete-toggle");
 const themeSelect = document.getElementById("theme-select");
 
 const KEYMAP_STORAGE_KEY = "bigKeyboard.keymap.v1";
@@ -80,6 +81,7 @@ const THEME_STORAGE_KEY = "bigKeyboard.theme.v1";
 const THEME_OPTIONS = ["system", "dark", "light"];
 const SPEECH_STORAGE_KEY = "bigKeyboard.speechEnabled.v1";
 const TOUCH_STORAGE_KEY = "bigKeyboard.touchEnabled.v1";
+const MIDDLE_CLICK_DELETE_STORAGE_KEY = "bigKeyboard.middleClickDelete.v1";
 
 const DEFAULT_KEYMAP = {
   up: "ArrowUp",
@@ -103,6 +105,10 @@ let systemThemeMedia = null;
 
 const touchSettings = {
   enabled: true,
+};
+
+const mouseSettings = {
+  middleClickDeletes: false,
 };
 
 function loadKeymap() {
@@ -338,6 +344,33 @@ function syncTouchStatusUI() {
     return;
   }
   touchscreenStatus.textContent = touchSettings.enabled ? "Touchscreen enabled" : "Touchscreen disabled";
+}
+
+function loadMiddleClickDelete() {
+  try {
+    const raw = localStorage.getItem(MIDDLE_CLICK_DELETE_STORAGE_KEY);
+    if (raw === null) {
+      mouseSettings.middleClickDeletes = false;
+      return;
+    }
+    mouseSettings.middleClickDeletes = raw === "1";
+  } catch {
+    mouseSettings.middleClickDeletes = false;
+  }
+}
+
+function saveMiddleClickDelete() {
+  try {
+    localStorage.setItem(MIDDLE_CLICK_DELETE_STORAGE_KEY, mouseSettings.middleClickDeletes ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function syncMiddleClickDeleteUI() {
+  if (middleClickDeleteToggle instanceof HTMLInputElement) {
+    middleClickDeleteToggle.checked = Boolean(mouseSettings.middleClickDeletes);
+  }
 }
 
 function saveSpeechEnabled() {
@@ -909,6 +942,13 @@ if (touchEnabledToggle instanceof HTMLInputElement) {
   });
 }
 
+if (middleClickDeleteToggle instanceof HTMLInputElement) {
+  middleClickDeleteToggle.addEventListener("change", () => {
+    mouseSettings.middleClickDeletes = Boolean(middleClickDeleteToggle.checked);
+    saveMiddleClickDelete();
+  });
+}
+
 if (themeSelect instanceof HTMLSelectElement) {
   themeSelect.addEventListener("change", () => {
     const value = themeSelect.value;
@@ -991,6 +1031,27 @@ document.addEventListener("contextmenu", (event) => {
 // Fullscreen mouse/trackball support:
 // - Move pointer to select (highlight only).
 // - Click or press Enter to commit selected key.
+keyGrid.addEventListener(
+  "auxclick",
+  (event) => {
+    if (document.body.dataset.inputMode !== "mouse-fullscreen") {
+      return;
+    }
+    if (!mouseSettings.middleClickDeletes) {
+      return;
+    }
+    // Middle mouse button: delete last char.
+    if (typeof event.button === "number" && event.button !== 1) {
+      return;
+    }
+    if (event.target && keyGrid.contains(event.target)) {
+      event.preventDefault();
+      deleteLast();
+    }
+  },
+  { passive: false },
+);
+
 keyGrid.addEventListener(
   "mousemove",
   (event) => {
@@ -1343,6 +1404,8 @@ syncSpeechToggleUI();
 loadTouchEnabled();
 syncTouchToggleUI();
 syncTouchStatusUI();
+loadMiddleClickDelete();
+syncMiddleClickDeleteUI();
 
 if (window.matchMedia) {
   systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
