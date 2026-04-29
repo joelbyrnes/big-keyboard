@@ -1,5 +1,5 @@
 // Single place to bump the app version.
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.3.3";
 
 const qwertyLayout = [
   [
@@ -997,7 +997,7 @@ if (optionsModal instanceof HTMLElement) {
 
 // Touch / pointer support:
 // - Tap a key to select it (activation requires Enter).
-// - Dragging won't activate.
+// - Action keys (Enter/Delete) still activate even if drag occurs.
 // - Suppress long-press context menus/callouts where possible.
 //
 // Fullscreen mouse mode:
@@ -1208,7 +1208,7 @@ keyGrid.addEventListener(
       return;
     }
 
-    if (activeCell && !moved) {
+    if (activeCell) {
       const row = Number(activeCell.dataset.row);
       const col = Number(activeCell.dataset.col);
       if (!Number.isNaN(row) && !Number.isNaN(col)) {
@@ -1352,7 +1352,7 @@ keyGrid.addEventListener(
         continue;
       }
 
-      if (touchStartCell && !touchMoved) {
+      if (touchStartCell) {
         const row = Number(touchStartCell.dataset.row);
         const col = Number(touchStartCell.dataset.col);
         if (!Number.isNaN(row) && !Number.isNaN(col)) {
