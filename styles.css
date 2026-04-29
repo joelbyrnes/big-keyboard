@@ -393,6 +393,15 @@ body {
   box-shadow: 0 0 0 3px var(--selected-glow);
 }
 
+/* Touch: Enter/Delete show press feedback without changing the letter selection. */
+.key-cell.action-pressed {
+  border-color: var(--accent-strong);
+  background: var(--selected-surface);
+  outline: 4px solid var(--accent-strong);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--selected-glow);
+}
+
 .key-cell.wide {
   flex-grow: 1.35;
 }

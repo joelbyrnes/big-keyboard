@@ -532,6 +532,9 @@ const state = {
   text: "",
 };
 
+/** Touch only: highlight Enter/Delete while finger is down without changing letter selection. */
+let touchActionPress = null;
+
 function normalizeForEntry(value) {
   if (typeof value !== "string") {
     return "";
@@ -623,6 +626,14 @@ function renderKeyGrid() {
       }
       if (state.selectedRow !== null && state.selectedCol !== null && rowIndex === state.selectedRow && colIndex === state.selectedCol) {
         cell.classList.add("selected");
+      }
+      if (
+        touchActionPress &&
+        touchActionPress.row === rowIndex &&
+        touchActionPress.col === colIndex &&
+        key.type !== "char"
+      ) {
+        cell.classList.add("action-pressed");
       }
       cell.textContent = key.label;
       rowElement.appendChild(cell);
@@ -997,7 +1008,7 @@ if (optionsModal instanceof HTMLElement) {
 
 // Touch / pointer support:
 // - Tap a key to select it (activation requires Enter).
-// - Action keys (Enter/Delete) still activate even if drag occurs.
+// - Delete activates on press; Enter activates on release (drag ignored for both).
 // - Suppress long-press context menus/callouts where possible.
 //
 // Fullscreen mouse mode:
@@ -1157,15 +1168,34 @@ keyGrid.addEventListener(
     startX = event.clientX;
     startY = event.clientY;
 
-    // Highlight follows touch.
     const row = Number(activeCell.dataset.row);
     const col = Number(activeCell.dataset.col);
-    if (!Number.isNaN(row) && !Number.isNaN(col)) {
+    if (Number.isNaN(row) || Number.isNaN(col)) {
+      event.preventDefault();
+      return;
+    }
+    const key = qwertyLayout[row][col];
+    if (!key) {
+      event.preventDefault();
+      return;
+    }
+
+    if (key.type === "char") {
+      touchActionPress = null;
       state.selectedRow = row;
       state.selectedCol = col;
       syncPreviewToSelection();
       updateUI();
-      speakSelection(qwertyLayout[row][col]);
+      speakSelection(key);
+    } else if (key.type === "backspace") {
+      touchActionPress = { row, col };
+      updateUI();
+      speakSelection(key);
+      activateKey(key);
+    } else if (key.type === "commit") {
+      touchActionPress = { row, col };
+      updateUI();
+      speakSelection(key);
     }
 
     event.preventDefault();
@@ -1213,20 +1243,21 @@ keyGrid.addEventListener(
       const col = Number(activeCell.dataset.col);
       if (!Number.isNaN(row) && !Number.isNaN(col)) {
         const key = qwertyLayout[row]?.[col];
-        // In touch mode, actions (Enter/Delete) should activate on tap.
-        if (key && key.type !== "char") {
+        // Enter commits on release (drag ignored). Delete handled on pointerdown.
+        if (key && key.type === "commit") {
+          touchActionPress = null;
           activateKey(key);
-          if (key.type === "commit") {
-            speakEnteredText();
-          }
+          speakEnteredText();
         }
       }
     }
 
+    touchActionPress = null;
     activePointerId = null;
     activeCell = null;
     moved = false;
     activatedThisGesture = false;
+    updateUI();
     event.preventDefault();
   },
   { passive: false },
@@ -1235,10 +1266,12 @@ keyGrid.addEventListener(
 keyGrid.addEventListener(
   "pointercancel",
   () => {
+    touchActionPress = null;
     activePointerId = null;
     activeCell = null;
     moved = false;
     activatedThisGesture = false;
+    updateUI();
   },
   { passive: true },
 );
@@ -1264,18 +1297,6 @@ function cellFromPoint(x, y) {
     return null;
   }
   return cell;
-}
-
-function selectCell(cell) {
-  const row = Number(cell.dataset.row);
-  const col = Number(cell.dataset.col);
-  if (Number.isNaN(row) || Number.isNaN(col)) {
-    return;
-  }
-  state.selectedRow = row;
-  state.selectedCol = col;
-  updateUI();
-  speakSelection(qwertyLayout[row][col]);
 }
 
 keyGrid.addEventListener(
@@ -1304,7 +1325,35 @@ keyGrid.addEventListener(
     touchStartX = t.clientX;
     touchStartY = t.clientY;
     touchStartCell = cell;
-    selectCell(cell);
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    if (Number.isNaN(row) || Number.isNaN(col)) {
+      event.preventDefault();
+      return;
+    }
+    const key = qwertyLayout[row][col];
+    if (!key) {
+      event.preventDefault();
+      return;
+    }
+
+    if (key.type === "char") {
+      touchActionPress = null;
+      state.selectedRow = row;
+      state.selectedCol = col;
+      syncPreviewToSelection();
+      updateUI();
+      speakSelection(key);
+    } else if (key.type === "backspace") {
+      touchActionPress = { row, col };
+      updateUI();
+      speakSelection(key);
+      activateKey(key);
+    } else if (key.type === "commit") {
+      touchActionPress = { row, col };
+      updateUI();
+      speakSelection(key);
+    }
 
     event.preventDefault();
   },
@@ -1357,20 +1406,20 @@ keyGrid.addEventListener(
         const col = Number(touchStartCell.dataset.col);
         if (!Number.isNaN(row) && !Number.isNaN(col)) {
           const key = qwertyLayout[row]?.[col];
-          // In touch mode, actions (Enter/Delete) should activate on tap.
-          if (key && key.type !== "char") {
+          if (key && key.type === "commit") {
+            touchActionPress = null;
             activateKey(key);
-            if (key.type === "commit") {
-              speakEnteredText();
-            }
+            speakEnteredText();
           }
         }
       }
 
+      touchActionPress = null;
       activeTouchId = null;
       touchStartCell = null;
       touchMoved = false;
       touchActivatedThisGesture = false;
+      updateUI();
       event.preventDefault();
       return;
     }
@@ -1381,10 +1430,12 @@ keyGrid.addEventListener(
 keyGrid.addEventListener(
   "touchcancel",
   () => {
+    touchActionPress = null;
     activeTouchId = null;
     touchStartCell = null;
     touchMoved = false;
     touchActivatedThisGesture = false;
+    updateUI();
   },
   { passive: true },
 );
