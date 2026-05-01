@@ -1,5 +1,5 @@
 // Single place to bump the app version.
-const APP_VERSION = "0.3.3";
+const APP_VERSION = "0.4.0";
 
 const qwertyLayout = [
   [
