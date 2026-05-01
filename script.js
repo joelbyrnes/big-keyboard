@@ -72,6 +72,7 @@ const keymapCaptureHint = document.getElementById("keymap-capture-hint");
 const speechResetBtn = document.getElementById("speech-reset-btn");
 const speechTestBtn = document.getElementById("speech-test-btn");
 const speechEnabledToggle = document.getElementById("speech-enabled-toggle");
+const previewBlinkToggle = document.getElementById("preview-blink-toggle");
 const touchEnabledToggle = document.getElementById("touch-enabled-toggle");
 const middleClickDeleteToggle = document.getElementById("middle-click-delete-toggle");
 const themeSelect = document.getElementById("theme-select");
@@ -82,6 +83,7 @@ const THEME_OPTIONS = ["system", "dark", "light"];
 const SPEECH_STORAGE_KEY = "bigKeyboard.speechEnabled.v1";
 const TOUCH_STORAGE_KEY = "bigKeyboard.touchEnabled.v1";
 const MIDDLE_CLICK_DELETE_STORAGE_KEY = "bigKeyboard.middleClickDelete.v1";
+const PREVIEW_BLINK_STORAGE_KEY = "bigKeyboard.previewBlink.v1";
 
 const DEFAULT_KEYMAP = {
   up: "ArrowUp",
@@ -109,6 +111,10 @@ const touchSettings = {
 
 const mouseSettings = {
   middleClickDeletes: false,
+};
+
+const uiSettings = {
+  previewBlink: true,
 };
 
 function loadKeymap() {
@@ -371,6 +377,37 @@ function syncMiddleClickDeleteUI() {
   if (middleClickDeleteToggle instanceof HTMLInputElement) {
     middleClickDeleteToggle.checked = Boolean(mouseSettings.middleClickDeletes);
   }
+}
+
+function loadPreviewBlink() {
+  try {
+    const raw = localStorage.getItem(PREVIEW_BLINK_STORAGE_KEY);
+    if (raw === null) {
+      uiSettings.previewBlink = true;
+      return;
+    }
+    uiSettings.previewBlink = raw === "1";
+  } catch {
+    uiSettings.previewBlink = true;
+  }
+}
+
+function savePreviewBlink() {
+  try {
+    localStorage.setItem(PREVIEW_BLINK_STORAGE_KEY, uiSettings.previewBlink ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function syncPreviewBlinkUI() {
+  if (previewBlinkToggle instanceof HTMLInputElement) {
+    previewBlinkToggle.checked = Boolean(uiSettings.previewBlink);
+  }
+}
+
+function applyPreviewBlinkSetting() {
+  document.body.dataset.previewBlink = uiSettings.previewBlink ? "on" : "off";
 }
 
 function saveSpeechEnabled() {
@@ -955,6 +992,14 @@ if (middleClickDeleteToggle instanceof HTMLInputElement) {
   });
 }
 
+if (previewBlinkToggle instanceof HTMLInputElement) {
+  previewBlinkToggle.addEventListener("change", () => {
+    uiSettings.previewBlink = Boolean(previewBlinkToggle.checked);
+    savePreviewBlink();
+    applyPreviewBlinkSetting();
+  });
+}
+
 if (themeSelect instanceof HTMLSelectElement) {
   themeSelect.addEventListener("change", () => {
     const value = themeSelect.value;
@@ -1455,6 +1500,9 @@ syncTouchToggleUI();
 syncTouchStatusUI();
 loadMiddleClickDelete();
 syncMiddleClickDeleteUI();
+loadPreviewBlink();
+syncPreviewBlinkUI();
+applyPreviewBlinkSetting();
 
 if (window.matchMedia) {
   systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
