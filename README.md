@@ -9,18 +9,39 @@ In this project I am also evaluating Cursor for development, so this is almost e
 ## How it works
 
 - **Keyboard mode (desktop)**: use arrow keys to move selection, press `Enter` to commit, `Backspace` to delete.
-- **Touchscreen mode**: tap a key to commit immediately; `Delete` removes the last character.
-  - On load in touch mode there is **no selected key** and **no preview cursor**.
-- **Fullscreen keyboard/mouse/trackball/trackpad mode**: entering fullscreen enables pointer navigation:
-  - move the pointer over a key to select it (cursor may be hidden)
-  - click or press `Enter` to commit the selected key
+- **Touchscreen mode**: tap a key to **select** it, then tap **Enter** to commit (reduces mis-taps for poor motor control).
+  - `Delete` removes the last character.
+  - On load in touch mode there is **no selected key**.
+- **Fullscreen mouse/trackball/trackpad mode**: entering fullscreen enables pointer navigation:
+  - move the pointer over a key to select it
+  - left-click (and optionally right-click) commits the selected key
+  - optional middle-click delete
   - scrolling is suppressed to keep the keyboard in view
 
 ## Controls
 
 - **Clear**: clears all input text.
 - **Full Screen**: toggles fullscreen (where supported).
-- **Version**: shown on the top bar (currently `v0.1.0`).
+- **Version**: shown on the top bar.
+
+## Options (saved in this browser)
+
+- **Touchscreen**
+  - Enable/disable touchscreen mode (useful on hybrid devices where accidental touches switch modes).
+  - On touch-capable devices, the top bar can show a status chip: "Touchscreen enabled/disabled".
+- **Letter preview**
+  - Show/hide the pending (blinking) selected character in the text area.
+- **Type-to-select (no auto-enter)**
+  - When enabled, pressing letter/number/punctuation keys selects the matching on-screen key (you still press `Enter` to commit).
+- **Theme**
+  - System / Dark / Light.
+- **Key mapping**
+  - Remap Up/Down/Left/Right/Delete/Enter/Space.
+- **Speech**
+  - Enable/disable speech feedback.
+  - Test/Reset controls for recovery if the speech engine gets stuck.
+- **Mouse**
+  - Optional: middle-click delete in fullscreen mouse mode, for faster trackball use. 
 
 ## Accessibility Goals
 
