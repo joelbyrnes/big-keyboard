@@ -73,6 +73,7 @@ const speechResetBtn = document.getElementById("speech-reset-btn");
 const speechTestBtn = document.getElementById("speech-test-btn");
 const speechEnabledToggle = document.getElementById("speech-enabled-toggle");
 const previewBlinkToggle = document.getElementById("preview-blink-toggle");
+const typeToSelectToggle = document.getElementById("type-to-select-toggle");
 const touchEnabledToggle = document.getElementById("touch-enabled-toggle");
 const middleClickDeleteToggle = document.getElementById("middle-click-delete-toggle");
 const themeSelect = document.getElementById("theme-select");
@@ -84,6 +85,7 @@ const SPEECH_STORAGE_KEY = "bigKeyboard.speechEnabled.v1";
 const TOUCH_STORAGE_KEY = "bigKeyboard.touchEnabled.v1";
 const MIDDLE_CLICK_DELETE_STORAGE_KEY = "bigKeyboard.middleClickDelete.v1";
 const PREVIEW_BLINK_STORAGE_KEY = "bigKeyboard.previewBlink.v1";
+const TYPE_TO_SELECT_STORAGE_KEY = "bigKeyboard.typeToSelect.v1";
 
 const DEFAULT_KEYMAP = {
   up: "ArrowUp",
@@ -115,6 +117,7 @@ const mouseSettings = {
 
 const uiSettings = {
   previewBlink: true,
+  typeToSelect: false,
 };
 
 function loadKeymap() {
@@ -408,6 +411,48 @@ function syncPreviewBlinkUI() {
 
 function applyPreviewBlinkSetting() {
   document.body.dataset.previewBlink = uiSettings.previewBlink ? "on" : "off";
+}
+
+function loadTypeToSelect() {
+  try {
+    const raw = localStorage.getItem(TYPE_TO_SELECT_STORAGE_KEY);
+    if (raw === null) {
+      uiSettings.typeToSelect = false;
+      return;
+    }
+    uiSettings.typeToSelect = raw === "1";
+  } catch {
+    uiSettings.typeToSelect = false;
+  }
+}
+
+function saveTypeToSelect() {
+  try {
+    localStorage.setItem(TYPE_TO_SELECT_STORAGE_KEY, uiSettings.typeToSelect ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function syncTypeToSelectUI() {
+  if (typeToSelectToggle instanceof HTMLInputElement) {
+    typeToSelectToggle.checked = Boolean(uiSettings.typeToSelect);
+  }
+}
+
+function findKeyByValue(value) {
+  for (let rowIndex = 0; rowIndex < qwertyLayout.length; rowIndex += 1) {
+    for (let colIndex = 0; colIndex < qwertyLayout[rowIndex].length; colIndex += 1) {
+      const key = qwertyLayout[rowIndex][colIndex];
+      if (key.type !== "char") {
+        continue;
+      }
+      if (key.value === value) {
+        return { row: rowIndex, col: colIndex };
+      }
+    }
+  }
+  return null;
 }
 
 function saveSpeechEnabled() {
@@ -886,6 +931,38 @@ document.addEventListener("keydown", (event) => {
     }
     pressedPhysicalKeys.add(event.code);
   }
+
+  // Type-to-select: pressing character keys selects the on-screen key (no commit).
+  if (
+    !mappedAction &&
+    uiSettings.typeToSelect &&
+    document.body.dataset.inputMode !== "touch" &&
+    typeof event.key === "string"
+  ) {
+    const raw = event.key;
+    let target = "";
+    if (raw === " ") {
+      target = " ";
+    } else if (raw === "/" || raw === "?") {
+      // Physical "/" is commonly easier to hit than shift+"/" for "?".
+      // Our on-screen punctuation row uses "?".
+      target = "?";
+    } else if (event.code === "Slash" || event.code === "NumpadDivide") {
+      // Some layouts / IMEs report an unexpected `key`, but `code` stays stable.
+      target = "?";
+    } else if (raw.length === 1) {
+      target = /^[a-z]$/i.test(raw) ? raw.toUpperCase() : raw;
+    }
+    if (target) {
+      const pos = findKeyByValue(target);
+      if (pos) {
+        event.preventDefault();
+        selectByRowCol(pos.row, pos.col);
+        return;
+      }
+    }
+  }
+
   if (mappedAction === "up") {
     event.preventDefault();
     moveVertical(-1);
@@ -997,6 +1074,14 @@ if (previewBlinkToggle instanceof HTMLInputElement) {
     uiSettings.previewBlink = Boolean(previewBlinkToggle.checked);
     savePreviewBlink();
     applyPreviewBlinkSetting();
+  });
+}
+
+if (typeToSelectToggle instanceof HTMLInputElement) {
+  typeToSelectToggle.addEventListener("change", () => {
+    uiSettings.typeToSelect = Boolean(typeToSelectToggle.checked);
+    saveTypeToSelect();
+    syncTypeToSelectUI();
   });
 }
 
@@ -1503,6 +1588,8 @@ syncMiddleClickDeleteUI();
 loadPreviewBlink();
 syncPreviewBlinkUI();
 applyPreviewBlinkSetting();
+loadTypeToSelect();
+syncTypeToSelectUI();
 
 if (window.matchMedia) {
   systemThemeMedia = window.matchMedia("(prefers-color-scheme: dark)");

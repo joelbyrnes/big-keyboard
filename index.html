@@ -60,7 +60,6 @@
         <div id="options-body" class="modal-body">
           <div class="options-section">
             <div class="options-inline-actions">
-              <label class="options-label" for="touch-enabled-toggle">Touchscreen</label>
               <label class="options-toggle">
                 <input id="touch-enabled-toggle" type="checkbox" checked />
                 Enable touchscreen mode
@@ -74,7 +73,18 @@
               <label class="options-label">
                 <input id="preview-blink-toggle" type="checkbox" checked />
                 Letter preview
-              </label>- show the currently selected key blinking in the text area
+              </label>
+              Show the currently selected key (blinking).
+            </div>
+          </div>
+
+          <div class="options-section">
+            <div class="options-inline-actions">
+              <label class="options-toggle">
+                <input id="type-to-select-toggle" type="checkbox" />
+                Type-to-select (no auto-enter)
+              </label>
+              Pressing physical keys selects the on-screen key. Use Enter to commit. Disable this to only use arrow keys. 
             </div>
           </div>
 
