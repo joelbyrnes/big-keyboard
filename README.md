@@ -6,6 +6,20 @@ It's intended as a way to prototype different input methods to suit individual n
 
 In this project I am also evaluating Cursor for development, so this is almost entirely AI coded. 
 
+## Accessibility Goals
+
+All input is based around a two-step process of selecting a letter, then pressing Enter to enter it. This is to reduce the impact of accidental presses/clicks/taps. Clarity over speed. 
+
+There are many ways keys can be selected; touchscreen, keyboard characters (perhaps with troublesome keys removed), arrow keys, or any pointer such as mouse/trackpad/trackball. Input devices can be mixed and matched, for example enter keys via touchscreen but enter via a keyboard device, to suit the individual user's abilities and preferences. 
+
+When a letter is selected, it is spoken aloud (if the device/browser supports it), and when a key is entered it speaks the currently input text. This may assist users with poor eyesight and no braille ability. 
+
+- **No precise targeting:** controls are large, high-contrast, and few in number.
+- **No timing pressure:** nothing requires a fast gesture or a hold duration. There are no auto key repeats - a key press activates exactly once, including Enter and Delete. 
+- **Touch robustness:** pointer movement/dragging during press is ignored. No long press actions. 
+- **Low cognitive load:** one selected character at a time with explicit commit.
+- **Readable output:** text display uses large font for short, slow text entry.
+
 ## How it works
 
 - **Keyboard mode (desktop)**: use arrow keys to move selection, press `Enter` to commit, `Backspace` to delete.
@@ -43,13 +57,11 @@ In this project I am also evaluating Cursor for development, so this is almost e
 - **Mouse**
   - Optional: middle-click delete in fullscreen mouse mode, for faster trackball use. 
 
-## Accessibility Goals
+## Future goals or ideas
 
-- **No precise targeting:** controls are large, high-contrast, and few in number.
-- **No timing pressure:** nothing requires a fast gesture or a hold duration.
-- **Touch robustness:** pointer movement/dragging during press is ignored. No long press actions. 
-- **Low cognitive load:** one selected character at a time with explicit commit.
-- **Readable output:** text display uses large font for short, slow text entry.
+- Predictive text: input text can provide options for the word, if this can be done reliably. 
+- Send short messages: have a small list of people who can be contacted via email or other directly from the tool
+- OS-level on-screen keyboard: to support full OS integration. 
 
 ## Development 
 
